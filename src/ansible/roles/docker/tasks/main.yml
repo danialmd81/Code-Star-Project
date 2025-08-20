@@ -1,0 +1,15 @@
+---
+# tasks file for roles/docker
+# - name: Check if Docker service is active
+#   ansible.builtin.systemd:
+#     name: docker
+#     state: started
+#   register: docker_service_status
+#   ignore_errors: true
+#   changed_when: false
+
+- name: Install Docker (Debian)
+  ansible.builtin.import_tasks: debian.yml
+  when:
+    - ansible_os_family == "Debian"
+    # - docker_service_status.failed != 0

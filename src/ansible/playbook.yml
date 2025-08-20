@@ -1,0 +1,26 @@
+---
+- name: Prepare nodes for Docker Swarm
+  hosts: all
+  become: true
+  roles:
+    - role: user # Creates user, sets up SSH keys
+      vars:
+        user_name: "danial"
+        user_groups: "sudo"
+        user_pubkey_path: "roles/user/files/id_ed25519.pub"
+        user_sudo: true
+    - role: docker # Installs Docker Engine
+      vars:
+        docker_users: ["danial"] # Add user to Docker group
+
+# - name: Master Node Configuration
+#   hosts: masters
+#   become: true
+#   roles:
+#     - ssh
+
+# - name: Worker Node Configuration
+#   hosts: workers
+#   become: true
+#   roles:
+#     - ssh

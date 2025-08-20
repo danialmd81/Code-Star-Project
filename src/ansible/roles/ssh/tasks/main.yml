@@ -1,0 +1,11 @@
+---
+# tasks file for roles/ssh
+- name: Harden SSH configuration for master
+  ansible.builtin.copy:
+    src: master_sshd_config
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+    backup: true
+  notify: Restart ssh

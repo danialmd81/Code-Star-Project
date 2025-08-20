@@ -1,0 +1,16 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: etl-frontend
+    restart: unless-stopped
+    networks:
+      - etl-network
+    depends_on:
+      - keycloak
+      - nginx
+    volumes:
+      - frontend_data:/usr/share/nginx/html
+    env_file:
+      - ../../.env

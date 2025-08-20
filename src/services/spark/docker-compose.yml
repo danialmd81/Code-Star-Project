@@ -1,0 +1,122 @@
+services:
+  # Spark master node
+  spark-master:
+    image: bitnami/spark:3.5.0
+    container_name: spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      # JVM Options to optimize performance
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled
+    ports:
+      - "8080:8080" # Web UI
+      - "7077:7077" # Spark master port
+    volumes:
+      - spark-data:/bitnami
+      - ./conf:/opt/bitnami/spark/conf
+      - ./data:/data
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.compute == high
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+
+  # Spark worker nodes
+  spark-worker:
+    image: bitnami/spark:3.5.0
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+      # JVM Options
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC
+    ports:
+      - "8081:8081" # Worker Web UI
+    volumes:
+      - spark-worker-data:/bitnami
+      - ./data:/data
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 2 # Start with 2 workers, adjust based on your needs
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.compute == high
+        preferences:
+          - spread: node.id
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 2G
+      restart_policy:
+        condition: on-failure
+
+  # Spark History Server for job history and logs
+  spark-history-server:
+    image: bitnami/spark:3.5.0
+    container_name: spark-history
+    command:
+      - /opt/bitnami/spark/sbin/start-history-server.sh
+    environment:
+      - SPARK_MODE=master # Using master mode for the history server
+      - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
+    ports:
+      - "18080:18080" # History Server UI
+    volumes:
+      - ./spark-logs:/spark-logs
+      - ./conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+    networks:
+      - etl-network
+    deploy:
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 1G
+        reservations:
+          cpus: "0.2"
+          memory: 512M

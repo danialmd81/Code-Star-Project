@@ -1,0 +1,36 @@
+---
+docker_debian_required_packages:
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  # - curl
+
+docker_debian_conflicting_packages:
+  - docker.io
+  - docker-doc
+  - docker-compose
+  - podman-docker
+  - containerd
+  - runc
+
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+  - docker-ce-rootless-extras
+
+docker_redhat_conflicting_packages:
+  - docker-client
+  - docker-client-latest
+  - docker-common
+  - docker-latest
+  - docker-latest-logrotate
+  - docker-logrotate
+  - docker-engine
+  - podman
+  - runc
+
+# List of users to add to the 'docker' group
+docker_users: [danial]

@@ -1,0 +1,56 @@
+# -----------------------------------------------
+# Networks
+# -----------------------------------------------
+networks:
+  etl-network:
+    driver: overlay
+    attachable: true
+    name: etl-network
+  monitoring-network:
+    driver: overlay
+    attachable: true
+    name: monitoring-network
+
+# -----------------------------------------------
+# Volumes
+# -----------------------------------------------
+volumes:
+  centraldb_data:
+    driver: local
+    name: centraldb_data
+
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  alertmanager-data:
+    driver: local
+
+  keycloak_themes:
+    driver: local
+    name: keycloak_themes
+  frontend_data:
+    driver: local
+    name: frontend_data
+
+  spark-data:
+    driver: local
+    name: spark_data
+  spark-worker-data:
+    driver: local
+    name: spark_worker_data
+
+  loki-data:
+    driver: local
+    name: loki_data
+# -----------------------------------------------
+# Secrets
+# -----------------------------------------------
+# secrets:
+# postgres_password:
+# file: ../../secrets/postgres_password
+# Add additional secrets as needed
+# ssl_cert:
+#   file: ./secrets/ssl_cert.pem
+# ssl_key:
+#   file: ./secrets/ssl_key.pem

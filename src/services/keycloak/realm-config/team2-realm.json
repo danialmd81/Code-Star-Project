@@ -1,0 +1,27 @@
+{
+	"realm": "team2",
+	"enabled": true,
+	"displayName": "Team 2 Realm",
+	"sslRequired": "external",
+	"registrationAllowed": false,
+	"users": [
+		{
+			"username": "team2-admin",
+			"enabled": true,
+			"emailVerified": true,
+			"firstName": "Team2",
+			"lastName": "Admin",
+			"email": "team2-admin@yourdomain.com",
+			"credentials": [
+				{
+					"type": "password",
+					"value": "change-me-team2",
+					"temporary": false
+				}
+			],
+			"clientRoles": {
+				"realm-management": ["realm-admin"]
+			}
+		}
+	]
+}

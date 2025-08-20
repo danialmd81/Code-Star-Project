@@ -1,0 +1,17 @@
+---
+# tasks file for roles/user
+
+- name: Ensure user exists
+  ansible.builtin.user:
+    name: "{{ user_name }}"
+    state: present
+    shell: /bin/bash
+    groups: "{{ user_groups }}"
+    create_home: true
+
+- name: Add public key to authorized_keys
+  ansible.posix.authorized_key:
+    user: "{{ user_name }}"
+    state: present
+    key: "{{ lookup('file', user_pubkey_path) }}"
+    manage_dir: true
