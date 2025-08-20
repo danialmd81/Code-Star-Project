@@ -1,9 +1,6 @@
-version: "3.8"
 services:
   nginx:
     image: nginx:stable-alpine
-    container_name: keycloak-nginx
-    restart: unless-stopped
     depends_on:
       - keycloak
     env_file:
@@ -42,8 +39,6 @@ services:
   # Certificate renewal service
   certbot:
     image: certbot/certbot:latest
-    container_name: certbot
-    restart: unless-stopped
     volumes:
       - ../shared/certbot/www:/var/www/certbot:rw
       - ../shared/certbot/conf:/etc/letsencrypt:rw

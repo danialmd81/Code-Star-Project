@@ -1,9 +1,7 @@
-version: "3.8"
 services:
   # Spark master node
   spark-master:
     image: bitnami/spark:3.5.0
-    container_name: spark-master
     environment:
       - SPARK_MODE=master
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
@@ -14,7 +12,7 @@ services:
       - SPARK_DAEMON_MEMORY=1g
       - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled
     ports:
-      - "8080:8080" # Web UI
+      - "8087:8080" # Web UI
       - "7077:7077" # Spark master port
     volumes:
       - spark-data:/bitnami
@@ -23,7 +21,7 @@ services:
     networks:
       - etl-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      test: ["CMD", "curl", "-f", "http://localhost:8087"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -47,7 +45,6 @@ services:
   # Spark worker nodes
   spark-worker:
     image: bitnami/spark:3.5.0
-    container_name: spark-worker
     depends_on:
       - spark-master
     environment:
@@ -97,7 +94,6 @@ services:
   # Spark History Server for job history and logs
   spark-history-server:
     image: bitnami/spark:3.5.0
-    container_name: spark-history
     command:
       - /opt/bitnami/spark/sbin/start-history-server.sh
     environment:

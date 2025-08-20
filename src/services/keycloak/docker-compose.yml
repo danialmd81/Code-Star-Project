@@ -1,9 +1,6 @@
-version: "3.8"
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.3
-    container_name: keycloak
-    restart: unless-stopped
     command:
       - start
       - --http-enabled=true
@@ -30,7 +27,7 @@ services:
       - ../shared/certbot:/etc/letsencrypt:ro
     ports:
       - "8443:8443" # HTTPS port
-      - "8080:8080" # HTTP port (behind reverse proxy)
+      - "8822:8080" # HTTP port (behind reverse proxy)
     networks:
       - etl-network
     deploy:

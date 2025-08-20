@@ -1,9 +1,6 @@
-version: "3.8"
 services:
   centraldb:
     image: postgres:15-alpine
-    container_name: centraldb
-    restart: unless-stopped
     env_file:
       - ../../.env
     volumes:
