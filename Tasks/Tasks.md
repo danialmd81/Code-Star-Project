@@ -54,6 +54,10 @@
    - Document monitoring and observability best practices.
    - Provide guidelines for metric/log collection, dashboard creation, and alerting.
 
+6. **Dashboards & Pipeline Visualization**
+   - Set up dashboards for monitoring CI/CD status, deployment health, and pipeline runs.
+   - Integrate dashboards with the observability stack (Grafana/Prometheus) for real-time feedback.
+
 ---
 
 ## Radmehr's Tasks
@@ -64,10 +68,6 @@
    - Write and maintain pipeline scripts for the chosen CI/CD tool.
    - Ensure seamless integration with Docker Swarm stack deployment (`docker stack deploy`).
    - Document the pipeline flow and provide clear usage instructions for the team.
-
-2. **Dashboards & Pipeline Visualization**
-   - Set up dashboards for monitoring CI/CD status, deployment health, and pipeline runs.
-   - Integrate dashboards with the observability stack (Grafana/Prometheus) for real-time feedback.
 
 ---
 
