@@ -1,3 +1,4 @@
+version: "3.8"
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.3
@@ -10,8 +11,7 @@ services:
       - --hostname=localhost # Change to your actual domain in production
       - --import-realm
     depends_on:
-      centraldb:
-        condition: service_healthy
+      - centraldb
     env_file:
       - ../../.env
     environment:
