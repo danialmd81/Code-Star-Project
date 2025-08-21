@@ -54,4 +54,4 @@ services:
 
 configs:
   nginx_conf:
-    file: ./nginx.conf
+    file: ./configs/nginx/nginx.conf

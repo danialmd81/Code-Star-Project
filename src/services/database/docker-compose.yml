@@ -35,4 +35,4 @@ services:
 
 configs:
   init_script:
-    file: init/01-init.sql
+    file: ./configs/database/init/01-init.sql

@@ -56,10 +56,10 @@ services:
 
 configs:
   etl_project_realm:
-    file: ./realm-config/etl_project_realm.json
+    file: ./configs/keycloak/realm-config/etl-project-realm.json
   team1_realm:
-    file: ./realm-config/team1_realm.json
+    file: ./configs/keycloak/realm-config/team1-realm.json
   team2_realm:
-    file: ./realm-config/team2_realm.json
+    file: ./configs/keycloak/realm-config/team2-realm.json
   team3_realm:
-    file: ./realm-config/team3_realm.json
+    file: ./configs/keycloak/realm-config/team3-realm.json
