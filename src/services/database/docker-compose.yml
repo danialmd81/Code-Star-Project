@@ -5,8 +5,6 @@ services:
       - .env
     volumes:
       - centraldb_data:/var/lib/postgresql/data
-      # mount custom init scripts:
-      - ./init:/docker-entrypoint-initdb.d
     configs:
       - source: init_script
         target: /docker-entrypoint-initdb.d/01-init.sql
