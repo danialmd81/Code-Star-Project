@@ -2,35 +2,23 @@ auth_enabled: false
 
 server:
   http_listen_port: 3100
-
-ingester:
-  lifecycler:
-    address: 127.0.0.1
-    ring:
-      kvstore:
-        store: inmemory
-    final_sleep: 0s
-  chunk_idle_period: 5m
-  max_chunk_age: 1h
-  chunk_target_size: 1048576
-
-schema_config:
-  configs:
-    - from: 2023-01-01
-      store: boltdb-shipper
-      object_store: filesystem
-      schema: v12
-      index:
-        prefix: index_
-        period: 24h
+  grpc_listen_port: 9095
 
 storage_config:
-  boltdb_shipper:
-    active_index_directory: /loki/index
-    cache_location: /loki/cache
-    shared_store: filesystem
+  boltdb:
+    directory: /loki/index
   filesystem:
     directory: /loki/chunks
 
+ingester:
+  lifecycler:
+    ring:
+      kvstore:
+        store: inmemory
+  chunk_idle_period: 3m
+  max_chunk_age: 1h
+
 limits_config:
+  max_query_length: 1h
+  max_entries_limit: 5000
   retention_period: 168h # 7 days

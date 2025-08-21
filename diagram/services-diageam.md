@@ -45,20 +45,25 @@ graph TD
 
 ```mermaid
 graph TD
-  User -->|Login| Frontend[Frontend]
-  Frontend -->|OIDC Auth| Keycloak
-  Backend -->|OIDC Auth| Keycloak
-  
-  Grafana -->|OIDC Auth| Keycloak
-  Keycloak -->|User Data| PostgreSQL
-  Keycloak -->|Metrics & Logs| OpenTelemetry
+  User((User)) -->|1.Login| Frontend[Frontend]
+  Frontend -->|2.OIDC Auth| Keycloak[Keycloak]
+  Keycloak -->|3.Redirect| Frontend
+  Frontend -->|4.API Requests| Backend[Backend]
+  Backend -->|5.OIDC Auth| Keycloak
+  Backend -->|6.Give Access| Frontend
+
+  Grafana[Grafana] -->|OIDC Auth| Keycloak
+  Keycloak -->|User Data| PostgreSQL[PostgreSQL]
+  Keycloak -->|Metrics & Logs| OpenTelemetry[OpenTelemetry]
+  Keycloak -.->|Admin Portal| Admin[Admin]
 ```
 
 **Explanation:**  
 
-- Keycloak provides authentication and RBAC for all services.
+- Keycloak provides authentication.
 - Stores user data in PostgreSQL.
 - Integrates with OpenTelemetry for monitoring.
+- Provides an admin portal for user management.
 
 ---
 
@@ -123,19 +128,29 @@ graph TD
 
 ```mermaid
 graph TD
-  AllServices((All Services)) -->|Metrics & Logs| OpenTelemetry
-  OpenTelemetry -->|Metrics| Prometheus
-  OpenTelemetry -->|Logs| Loki
-  Prometheus -->|Data Source| Grafana
+  AllServices((All Services)) -->|Metrics & Logs| OpenTelemetry[OpenTelemetry Collector]
+  AllServices -->|Host Metrics| NodeExporter[Node Exporter]
+  AllServices -->|Container Metrics| cAdvisor[cAdvisor]
+  OpenTelemetry -->|Logs| Loki[Loki]
+  NodeExporter -->|Metrics| Prometheus
+  cAdvisor -->|Metrics| Prometheus
+  OpenTelemetry -->|Metrics| Prometheus[Prometheus]
+  Promtail[Promtail] -->|Push Logs| Loki
+  Prometheus -->|Data Source| Grafana[Grafana]
   Loki -->|Data Source| Grafana
-  Grafana -->|Alerts| AlertManager
+  Grafana -->|Alerts| AlertManager[Alertmanager]
 ```
 
 **Explanation:**  
 
-- OpenTelemetry collects metrics/logs from all services.
-- Prometheus and Loki store and aggregate data.
-- Grafana visualizes dashboards and sends alerts.
+- **OpenTelemetry Collector** gathers metrics and logs from all services.
+- **Node Exporter** collects host-level metrics (CPU, memory, disk, etc.).
+- **cAdvisor** collects container-level metrics (resource usage, performance).
+- **Prometheus** stores metrics from OpenTelemetry, Node Exporter, and cAdvisor.
+- **Loki** stores logs from OpenTelemetry and Promtail.
+- **Promtail** ships logs from host files to Loki.
+- **Grafana** visualizes metrics and logs from Prometheus and Loki, and sends alerts.
+- **Alertmanager** handles alerts triggered by Grafana or Prometheus.
 
 ---
 
