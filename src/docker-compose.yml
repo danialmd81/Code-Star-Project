@@ -1,3 +1,137 @@
+services:
+  # -----------------------------------------------
+  # Database
+  # -----------------------------------------------
+  database:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    volumes:
+      - database_data:/var/lib/postgresql/data
+    configs:
+      - source: init_script
+        target: /docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+      # restart_policy:
+      #   condition: on-failure
+      #   delay: 5s
+      #   max_attempts: 3
+      #   window: 120s
+  # -----------------------------------------------
+  # Keycloak
+  # -----------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    command:
+      - start
+      - --import-realm
+      - --proxy-headers=xforwarded
+      # - --hostname-debug=true
+    depends_on:
+      - database
+    env_file:
+      - .env
+    environment:
+      # JVM settings
+      JAVA_OPTS_APPEND: >-
+        -Xms1g -Xmx2g
+        -XX:MetaspaceSize=96m
+        -XX:MaxMetaspaceSize=256m
+        -XX:+ParallelRefProcEnabled
+        -XX:+UseStringDeduplication
+        -Djava.net.preferIPv4Stack=true
+    configs:
+      - source: team1_realm
+        target: /opt/keycloak/data/import/team1_realm.json
+      - source: team2_realm
+        target: /opt/keycloak/data/import/team2_realm.json
+      - source: team3_realm
+        target: /opt/keycloak/data/import/team3_realm.json
+    volumes:
+      - keycloak_themes:/opt/keycloak/themes
+    secrets:
+      - ssl_cert
+      - ssl_key
+    ports:
+      - "8080:8080"
+      - "8443:8443"
+    networks:
+      - etl-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 2G
+      # restart_policy:
+      #   condition: on-failure
+
+  # -----------------------------------------------
+  # Nginx
+  # -----------------------------------------------
+  nginx:
+    image: nginx:stable-alpine
+    depends_on:
+      - keycloak
+    env_file:
+      - .env
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+      - source: keycloak.conf
+        target: /etc/nginx/conf.d/keycloak.conf
+    secrets:
+      - ssl_cert
+      - ssl_key
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+      # restart_policy:
+      #   condition: on-failure
+
 # -----------------------------------------------
 # Networks
 # -----------------------------------------------
@@ -6,6 +140,7 @@ networks:
     driver: overlay
     attachable: true
     name: etl-network
+
   monitoring-network:
     driver: overlay
     attachable: true
@@ -15,9 +150,17 @@ networks:
 # Volumes
 # -----------------------------------------------
 volumes:
-  centraldb_data:
+  database_data:
     driver: local
-    name: centraldb_data
+    name: database_data
+
+  frontend_data:
+    driver: local
+    name: frontend_data
+
+  keycloak_themes:
+    driver: local
+    name: keycloak_themes
 
   prometheus-data:
     driver: local
@@ -25,13 +168,9 @@ volumes:
     driver: local
   alertmanager-data:
     driver: local
-
-  keycloak_themes:
+  loki-data:
     driver: local
-    name: keycloak_themes
-  frontend_data:
-    driver: local
-    name: frontend_data
+    name: loki_data
 
   spark-data:
     driver: local
@@ -40,17 +179,31 @@ volumes:
     driver: local
     name: spark_worker_data
 
-  loki-data:
-    driver: local
-    name: loki_data
 # -----------------------------------------------
 # Secrets
 # -----------------------------------------------
-# secrets:
-# postgres_password:
-# file: ../../secrets/postgres_password
-# Add additional secrets as needed
-# ssl_cert:
-#   file: ./secrets/ssl_cert.pem
-# ssl_key:
-#   file: ./secrets/ssl_key.pem
+secrets:
+  ssl_cert:
+    file: ./secrets/fullchain.pem
+  ssl_key:
+    file: ./secrets/privkey.pem
+# -----------------------------------------------
+# Configs
+# -----------------------------------------------
+configs:
+  init_script:
+    file: ./services/database/init/01-init.sql
+
+  etl_project_realm:
+    file: ./services/keycloak/realm-config/etl-project-realm.json
+  team1_realm:
+    file: ./services/keycloak/realm-config/team1-realm.json
+  team2_realm:
+    file: ./services/keycloak/realm-config/team2-realm.json
+  team3_realm:
+    file: ./services/keycloak/realm-config/team3-realm.json
+
+  nginx_conf:
+    file: ./services/nginx/nginx.conf
+  keycloak.conf:
+    file: ./services/nginx/conf.d/keycloak.conf

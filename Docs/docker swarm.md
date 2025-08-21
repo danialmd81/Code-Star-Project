@@ -193,6 +193,10 @@ docker service create \
   `docker service update --image <new-image> <service-name>`
 - **Remove Service:**  
   `docker service rm <service-name>`
+- **Inspect Service Logs:**  
+  `docker service logs <service-name> --follow`
+- **Inspect Service Tasks:**  
+  `docker service ps <service-name>`
 
 ### Node Management
 
@@ -226,15 +230,6 @@ docker service create \
 - [Docker Compose File Reference](https://docs.docker.com/compose/compose-file/)
 - [Docker Networking](https://docs.docker.com/network/)
 - [Docker Secrets Management](https://docs.docker.com/engine/swarm/secrets/)
-- Books:  
-  - "Docker in Practice"  
-  - "Docker: Up & Running"
-- Online Courses:  
-  - Docker Mastery (Udemy)  
-  - Docker Swarm Mastery (Udemy)
 - Tutorials:  
   - [Play with Docker Classroom](https://training.play-with-docker.com/)  
   - [Docker Labs](https://github.com/docker/labs)
-- Community:  
-  - Docker Forums  
-  - Stack Overflow

@@ -11,4 +11,4 @@ services:
     volumes:
       - frontend_data:/usr/share/nginx/html
     env_file:
-      - ../../.env
+      - .env
