@@ -11,9 +11,9 @@ services:
       # JVM Options to optimize performance
       - SPARK_DAEMON_MEMORY=1g
       - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled
-    ports:
-      - "8087:8080" # Web UI
-      - "7077:7077" # Spark master port
+    # ports:
+    #   - "8087:8080" # Web UI
+    #   - "7077:7077" # Spark master port
     volumes:
       - spark-data:/bitnami
       - ./conf:/opt/bitnami/spark/conf
@@ -59,8 +59,8 @@ services:
       # JVM Options
       - SPARK_DAEMON_MEMORY=1g
       - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC
-    ports:
-      - "8081:8081" # Worker Web UI
+    # ports:
+    #   - "8081:8081" # Worker Web UI
     volumes:
       - spark-worker-data:/bitnami
       - ./data:/data
@@ -99,8 +99,8 @@ services:
     environment:
       - SPARK_MODE=master # Using master mode for the history server
       - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
-    ports:
-      - "18080:18080" # History Server UI
+    # ports:
+    #   - "18080:18080" # History Server UI
     volumes:
       - ./spark-logs:/spark-logs
       - ./conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro

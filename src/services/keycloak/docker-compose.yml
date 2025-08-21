@@ -25,9 +25,9 @@ services:
       - keycloak_themes:/opt/keycloak/themes
       - ./realm-config:/opt/keycloak/data/import
       - ../shared/certbot:/etc/letsencrypt:ro
-    ports:
-      - "8443:8443" # HTTPS port
-      - "8822:8080" # HTTP port (behind reverse proxy)
+    # ports:
+    # - "8443:8443" # HTTPS port
+    # - "8080:8080" # HTTP port (behind reverse proxy)
     networks:
       - etl-network
     deploy:
