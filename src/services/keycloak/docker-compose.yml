@@ -10,7 +10,7 @@ services:
     depends_on:
       - centraldb
     env_file:
-      - ../../.env
+      - .env
     environment:
       # JVM settings
       JAVA_OPTS_APPEND: >-
@@ -20,11 +20,20 @@ services:
         -XX:+ParallelRefProcEnabled
         -XX:+UseStringDeduplication
         -Djava.net.preferIPv4Stack=true
+    configs:
+      - source: etl_project_realm
+        target: /opt/keycloak/data/import/etl_project_realm.json
+      - source: team1_realm
+        target: /opt/keycloak/data/import/team1_realm.json
+      - source: team2_realm
+        target: /opt/keycloak/data/import/team2_realm.json
+      - source: team3_realm
+        target: /opt/keycloak/data/import/team3_realm.json
     volumes:
-      # Persistent themes
       - keycloak_themes:/opt/keycloak/themes
-      - ./realm-config:/opt/keycloak/data/import
-      - ../shared/certbot:/etc/letsencrypt:ro
+    secrets:
+      - ssl_cert
+      - ssl_key
     # ports:
     # - "8443:8443" # HTTPS port
     # - "8080:8080" # HTTP port (behind reverse proxy)
@@ -44,3 +53,13 @@ services:
         reservations:
           cpus: "1"
           memory: 2G
+
+configs:
+  etl_project_realm:
+    file: ./realm-config/etl_project_realm.json
+  team1_realm:
+    file: ./realm-config/team1_realm.json
+  team2_realm:
+    file: ./realm-config/team2_realm.json
+  team3_realm:
+    file: ./realm-config/team3_realm.json
