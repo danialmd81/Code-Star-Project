@@ -4,12 +4,12 @@ CREATE USER etl_user WITH PASSWORD 'etl_password';
 GRANT ALL PRIVILEGES ON DATABASE etl_db TO etl_user;
 
 -- Create Keycloak database and user
+CREATE DATABASE keycloak_db;
 CREATE USER keycloak WITH PASSWORD 'keycloak1234';
-CREATE DATABASE keycloak;
-GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
+GRANT ALL PRIVILEGES ON DATABASE keycloak_db TO keycloak;
 
 -- Set up permissions for Keycloak database
-\c keycloak
+\c keycloak_db
 GRANT ALL ON SCHEMA public TO keycloak;
 
 -- Set up permissions for ETL database
