@@ -70,9 +70,6 @@ services:
     secrets:
       - ssl_cert
       - ssl_key
-    # ports:
-    # - "8443:8443" # HTTPS port
-    # - "8080:8080" # HTTP port (behind reverse proxy)
     networks:
       - etl-network
     deploy:
@@ -129,22 +126,6 @@ services:
           memory: 128M
       # restart_policy:
       #   condition: on-failure
-
-  # Certificate renewal service
-  # certbot:
-  #   image: certbot/certbot:latest
-  #   secrets:
-  #     - ssl_cert
-  #     - ssl_key
-  #   depends_on:
-  #     - nginx
-  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
-  #   networks:
-  #     - etl-network
-  #   deploy:
-  #     placement:
-  #       constraints:
-  #         - node.role == worker
 
 # -----------------------------------------------
 # Networks
