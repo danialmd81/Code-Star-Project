@@ -45,10 +45,10 @@ graph TD
 
 ```mermaid
 graph TD
-  User -->|Login/SSO| Keycloak[Keycloak]
+  User -->|Login| Frontend[Frontend]
   Frontend -->|OIDC Auth| Keycloak
   Backend -->|OIDC Auth| Keycloak
-  Spark -->|OIDC Auth| Keycloak
+  
   Grafana -->|OIDC Auth| Keycloak
   Keycloak -->|User Data| PostgreSQL
   Keycloak -->|Metrics & Logs| OpenTelemetry

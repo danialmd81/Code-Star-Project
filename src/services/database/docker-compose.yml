@@ -19,7 +19,6 @@ services:
       placement:
         constraints:
           - node.role == worker
-          - node.labels.storage == high
       resources:
         limits:
           cpus: "2"
