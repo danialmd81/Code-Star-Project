@@ -3,8 +3,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: etl-frontend
-    restart: unless-stopped
     networks:
       - etl-network
     depends_on:

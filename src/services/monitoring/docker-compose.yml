@@ -13,8 +13,8 @@ services:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/rules:/etc/prometheus/rules:ro
       - prometheus-data:/prometheus
-    ports:
-      - "9090:9090"
+    # ports:
+    # - "9090:9090"
     networks:
       - monitoring-network
       - etl-network
@@ -55,8 +55,8 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     env_file:
       - ../../.env
-    ports:
-      - "3000:3000"
+    # ports:
+    # - "3000:3000"
     networks:
       - monitoring-network
     depends_on:
@@ -95,10 +95,10 @@ services:
     volumes:
       - ./otel-collector/config.yaml:/etc/otelcol/config.yaml
     command: ["--config=/etc/otelcol/config.yaml"]
-    ports:
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
-      - "8888:8888" # Metrics exposition
+    # ports:
+    # - "4317:4317" # OTLP gRPC
+    # - "4318:4318" # OTLP HTTP
+    # - "8877:8877" # Metrics exposition
     networks:
       - monitoring-network
       - etl-network
@@ -131,8 +131,8 @@ services:
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
-    ports:
-      - "9093:9093"
+    # ports:
+    #   - "9093:9093"
     networks:
       - monitoring-network
     depends_on:
@@ -177,8 +177,8 @@ services:
       - "--path.sysfs=/host/sys"
       - "--path.rootfs=/rootfs"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    ports:
-      - "9100:9100"
+    # ports:
+    #   - "9100:9100"
     networks:
       - monitoring-network
     healthcheck:
@@ -217,8 +217,8 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    ports:
-      - "8080:8080"
+    # ports:
+    #   - "8080:8080"
     networks:
       - monitoring-network
     healthcheck:
@@ -255,8 +255,8 @@ services:
     volumes:
       - ./loki/local-config.yaml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
-    ports:
-      - "3100:3100" # Loki HTTP API
+    # ports:
+    #   - "3100:3100" # Loki HTTP API
     networks:
       - monitoring-network
     healthcheck:

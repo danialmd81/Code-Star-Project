@@ -1,13 +1,11 @@
 services:
   centraldb:
     image: postgres:15-alpine
-    container_name: centraldb
-    restart: unless-stopped
     env_file:
-      - ../../.env/
+      - ../../.env
     volumes:
       - centraldb_data:/var/lib/postgresql/data
-      # Optionally mount custom init scripts:
+      # mount custom init scripts:
       - ./init:/docker-entrypoint-initdb.d
     networks:
       - etl-network

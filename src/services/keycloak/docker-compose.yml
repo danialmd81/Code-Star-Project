@@ -1,8 +1,6 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.3
-    container_name: keycloak
-    restart: unless-stopped
     command:
       - start
       - --http-enabled=true
@@ -10,8 +8,7 @@ services:
       - --hostname=localhost # Change to your actual domain in production
       - --import-realm
     depends_on:
-      centraldb:
-        condition: service_healthy
+      - centraldb
     env_file:
       - ../../.env
     environment:
@@ -28,9 +25,9 @@ services:
       - keycloak_themes:/opt/keycloak/themes
       - ./realm-config:/opt/keycloak/data/import
       - ../shared/certbot:/etc/letsencrypt:ro
-    ports:
-      - "8443:8443" # HTTPS port
-      - "8080:8080" # HTTP port (behind reverse proxy)
+    # ports:
+    # - "8443:8443" # HTTPS port
+    # - "8080:8080" # HTTP port (behind reverse proxy)
     networks:
       - etl-network
     deploy:
