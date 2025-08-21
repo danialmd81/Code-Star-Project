@@ -50,7 +50,6 @@ volumes:
 # -----------------------------------------------
 secrets:
   ssl_cert:
-    file: ./services/shared/fullchain.pem
+    file: ./shared/fullchain.pem
   ssl_key:
-    file: ./services/shared/privkey.pem
-
+    file: ./shared/privkey.pem
