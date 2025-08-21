@@ -1,3 +1,170 @@
+services:
+  # -----------------------------------------------
+  # Database
+  # -----------------------------------------------
+  database:
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    volumes:
+      - centraldb_data:/var/lib/postgresql/data
+    configs:
+      - source: init_script
+        target: /docker-entrypoint-initdb.d/01-init.sql
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+  # -----------------------------------------------
+  # Keycloak
+  # -----------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3
+    command:
+      - start
+      - --import-realm
+    depends_on:
+      - database
+    env_file:
+      - .env
+    environment:
+      # JVM settings
+      JAVA_OPTS_APPEND: >-
+        -Xms1g -Xmx2g
+        -XX:MetaspaceSize=96m
+        -XX:MaxMetaspaceSize=256m
+        -XX:+ParallelRefProcEnabled
+        -XX:+UseStringDeduplication
+        -Djava.net.preferIPv4Stack=true
+    configs:
+      - source: etl_project_realm
+        target: /opt/keycloak/data/import/etl_project_realm.json
+      - source: team1_realm
+        target: /opt/keycloak/data/import/team1_realm.json
+      - source: team2_realm
+        target: /opt/keycloak/data/import/team2_realm.json
+      - source: team3_realm
+        target: /opt/keycloak/data/import/team3_realm.json
+    volumes:
+      - keycloak_themes:/opt/keycloak/themes
+    secrets:
+      - ssl_cert
+      - ssl_key
+    # ports:
+    # - "8443:8443" # HTTPS port
+    # - "8080:8080" # HTTP port (behind reverse proxy)
+    networks:
+      - etl-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 2G
+
+  # -----------------------------------------------
+  # Nginx
+  # -----------------------------------------------
+  nginx:
+    image: nginx:stable-alpine
+    depends_on:
+      - keycloak
+    env_file:
+      - .env
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+    secrets:
+      - ssl_cert
+      - ssl_key
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          cpus: "0.1"
+          memory: 128M
+
+  # Certificate renewal service
+  # certbot:
+  #   image: certbot/certbot:latest
+  #   secrets:
+  #     - ssl_cert
+  #     - ssl_key
+  #   depends_on:
+  #     - nginx
+  #   entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+  #   networks:
+  #     - etl-network
+  #   deploy:
+  #     placement:
+  #       constraints:
+  #         - node.role == worker
+
+# -----------------------------------------------
+# Networks
+# -----------------------------------------------
+configs:
+  init_script:
+    file: ./configs/database/init/01-init.sql
+
+  etl_project_realm:
+    file: ./configs/keycloak/realm-config/etl-project-realm.json
+  team1_realm:
+    file: ./configs/keycloak/realm-config/team1-realm.json
+  team2_realm:
+    file: ./configs/keycloak/realm-config/team2-realm.json
+  team3_realm:
+    file: ./configs/keycloak/realm-config/team3-realm.json
+
+  nginx_conf:
+    file: ./configs/nginx/nginx.conf
+
 # -----------------------------------------------
 # Networks
 # -----------------------------------------------
