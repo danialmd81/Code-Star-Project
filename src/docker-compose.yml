@@ -30,11 +30,11 @@ services:
         reservations:
           cpus: "1"
           memory: 1G
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
+      # restart_policy:
+      #   condition: on-failure
+      #   delay: 5s
+      #   max_attempts: 3
+      #   window: 120s
   # -----------------------------------------------
   # Keycloak
   # -----------------------------------------------
@@ -80,8 +80,6 @@ services:
       placement:
         constraints:
           - node.role == worker
-      restart_policy:
-        condition: on-failure
       resources:
         limits:
           cpus: "2"
@@ -89,6 +87,8 @@ services:
         reservations:
           cpus: "1"
           memory: 2G
+      # restart_policy:
+      #   condition: on-failure
 
   # -----------------------------------------------
   # Nginx
@@ -120,8 +120,6 @@ services:
       placement:
         constraints:
           - node.role == worker
-      restart_policy:
-        condition: on-failure
       resources:
         limits:
           cpus: "0.5"
@@ -129,6 +127,8 @@ services:
         reservations:
           cpus: "0.1"
           memory: 128M
+      # restart_policy:
+      #   condition: on-failure
 
   # Certificate renewal service
   # certbot:
@@ -145,25 +145,6 @@ services:
   #     placement:
   #       constraints:
   #         - node.role == worker
-
-# -----------------------------------------------
-# Networks
-# -----------------------------------------------
-configs:
-  init_script:
-    file: ./configs/database/init/01-init.sql
-
-  etl_project_realm:
-    file: ./configs/keycloak/realm-config/etl-project-realm.json
-  team1_realm:
-    file: ./configs/keycloak/realm-config/team1-realm.json
-  team2_realm:
-    file: ./configs/keycloak/realm-config/team2-realm.json
-  team3_realm:
-    file: ./configs/keycloak/realm-config/team3-realm.json
-
-  nginx_conf:
-    file: ./configs/nginx/nginx.conf
 
 # -----------------------------------------------
 # Networks
@@ -217,6 +198,24 @@ volumes:
 # -----------------------------------------------
 secrets:
   ssl_cert:
-    file: ./shared/fullchain.pem
+    file: ./secrets/fullchain.pem
   ssl_key:
-    file: ./shared/privkey.pem
+    file: ./secrets/privkey.pem
+# -----------------------------------------------
+# Configs
+# -----------------------------------------------
+configs:
+  init_script:
+    file: ./services/database/init/01-init.sql
+
+  etl_project_realm:
+    file: ./services/keycloak/realm-config/etl-project-realm.json
+  team1_realm:
+    file: ./services/keycloak/realm-config/team1-realm.json
+  team2_realm:
+    file: ./services/keycloak/realm-config/team2-realm.json
+  team3_realm:
+    file: ./services/keycloak/realm-config/team3-realm.json
+
+  nginx_conf:
+    file: ./services/nginx/nginx.conf

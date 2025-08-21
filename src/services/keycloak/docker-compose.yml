@@ -7,7 +7,7 @@ services:
     depends_on:
       - database
     env_file:
-      - .env
+      - ../../.env
     environment:
       # JVM settings
       JAVA_OPTS_APPEND: >-
@@ -17,46 +17,12 @@ services:
         -XX:+ParallelRefProcEnabled
         -XX:+UseStringDeduplication
         -Djava.net.preferIPv4Stack=true
-    configs:
-      - source: etl_project_realm
-        target: /opt/keycloak/data/import/etl_project_realm.json
-      - source: team1_realm
-        target: /opt/keycloak/data/import/team1_realm.json
-      - source: team2_realm
-        target: /opt/keycloak/data/import/team2_realm.json
-      - source: team3_realm
-        target: /opt/keycloak/data/import/team3_realm.json
     volumes:
       - keycloak_themes:/opt/keycloak/themes
-    secrets:
-      - ssl_cert
-      - ssl_key
-    # ports:
-    # - "8443:8443" # HTTPS port
-    # - "8080:8080" # HTTP port (behind reverse proxy)
+      - ./realm-config:/opt/keycloak/data/import
+      - ../../secrets/:/run/secrets:ro
+    ports:
+      - "8443:8443" # HTTPS port
+      - "8080:8080" # HTTP port (behind reverse proxy)
     networks:
       - etl-network
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          cpus: "2"
-          memory: 3G
-        reservations:
-          cpus: "1"
-          memory: 2G
-
-configs:
-  etl_project_realm:
-    file: ./configs/keycloak/realm-config/etl-project-realm.json
-  team1_realm:
-    file: ./configs/keycloak/realm-config/team1-realm.json
-  team2_realm:
-    file: ./configs/keycloak/realm-config/team2-realm.json
-  team3_realm:
-    file: ./configs/keycloak/realm-config/team3-realm.json

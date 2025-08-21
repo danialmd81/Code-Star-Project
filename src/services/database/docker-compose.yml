@@ -2,12 +2,10 @@ services:
   database:
     image: postgres:15-alpine
     env_file:
-      - .env
+      - ../../.env
     volumes:
       - centraldb_data:/var/lib/postgresql/data
-    configs:
-      - source: init_script
-        target: /docker-entrypoint-initdb.d/01-init.sql
+      - ./init:/docker-entrypoint-initdb.d
     networks:
       - etl-network
     healthcheck:
@@ -15,24 +13,3 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-        window: 120s
-
-configs:
-  init_script:
-    file: ./configs/database/init/01-init.sql
