@@ -66,3 +66,32 @@ At this stage, teams need access to **Spark** and observability infrastructure s
 2. **Observability Implementation:**
    - Deploy observability infrastructure based on the **OpenTelemetry** standard.
    - Integrate observability with products in coordination with development
+
+## Sequence Diagram
+
+```mermaid
+graph TD
+  User((User))  --->|Login & Auth| Frontend[Frontend]
+  Frontend      --->|Show Preview| User
+
+  Frontend      ----->|Select Data Source| Backend
+  Frontend      ----->|View Pipelines| Backend[Backend]
+  Frontend      ----->|Design Pipeline| Backend
+
+  Frontend      ----->|"Add Plugins<br>(Filter/Aggregator)"| Backend
+  Backend       ----->|Pipeline List| Frontend
+  Backend       ----->|Preview Output| Frontend
+  Observability                ----->|Monitor| Backend
+  Observability[Observability] ----->|Monitor| Spark
+  Backend       --->|Generate SparkSQL| Spark[Spark]
+  Spark         --->|Process Data| Database[(Database)]
+
+```
+
+**Legend:**
+
+- Users design and manage pipelines via the frontend.
+- Backend generates SparkSQL and interacts with Spark for data processing.
+- Spark processes data from the database.
+- Preview system lets users see output at each pipeline step.
+- Observability monitors Spark and backend for reliability.

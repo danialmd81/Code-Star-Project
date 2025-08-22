@@ -83,3 +83,29 @@ A **Denial of Service (DoS) attack** is when an attacker tries to make a system 
 - Automate backups using tools like `pg_dump` and schedule them with `cron`.
 - Use monitoring tools (like Prometheus or Grafana) to watch for performance issues.
 - Test your system with simulated large uploads to ensure it can handle
+
+## Sequence Diagram
+
+```mermaid
+graph TD
+  User((User)) -->|Login & Auth| Frontend[Frontend]
+  Frontend ------>|Upload CSV| Backend[Backend]
+  Backend  ------>|Validate & Sanitize Data| ETL[ETL Service]
+  ETL      ------>|Store Table| Database[(PostgreSQL Database)]
+  Backend  ------>|Show Datasets| Frontend
+
+  User     ------>|View, Rename, Delete| Frontend
+  Frontend ------>|Table Actions| Backend
+  Backend  ------>|Modify Table/Columns| Database
+  Database ------>|Backup| BackupSystem[Backup System]
+  BackupSystem -->|Restore| Database
+  Monitoring[Monitoring/Alerting] ------>|Monitor| Database
+```
+
+**Legend:**
+
+- Users upload CSV files via the frontend.
+- Backend validates, sanitizes, and passes data to the ETL service.
+- ETL stores the data in PostgreSQL.
+- Users can view and manage tables based on their roles.
+- Database is backed up and monitored for reliability and security.
