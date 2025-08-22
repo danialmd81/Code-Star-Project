@@ -1,15 +1,56 @@
+version: "3.8"
+
 services:
   database:
     image: postgres:15-alpine
     env_file:
       - ../../.env
     volumes:
-      - centraldb_data:/var/lib/postgresql/data
+      - database_data:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
     networks:
       - etl-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 30s
       timeout: 5s
       retries: 5
+
+  backup:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
+    environment:
+      POSTGRES_HOST: database
+      POSTGRES_DB: ${POSTGRES_DB:-etl_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      - database
+    networks:
+      - etl-network
+
+  replica:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-etl_db}
+      POSTGRES_USER: ${POSTGRES_USER:-replica}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replica_pass}
+    volumes:
+      - replica_data:/var/lib/postgresql/data
+      - ./replica-init:/docker-entrypoint-initdb.d
+    networks:
+      - etl-network
+    depends_on:
+      - database
+
+networks:
+  etl-network:
+    driver: bridge
+
+volumes:
+  database_data:
+    name: database_data
+  replica_data:
+    name: replica_data
