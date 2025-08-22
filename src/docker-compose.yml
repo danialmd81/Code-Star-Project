@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   # -----------------------------------------------
   # Backend
@@ -39,6 +41,115 @@ services:
       #   max_attempts: 3
       #   window: 120s
 
+  backup:
+    image: prodrigestivill/postgres-backup-local
+    environment:
+      POSTGRES_HOST: database
+      POSTGRES_DB: ${POSTGRES_DB:-etl_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - ./backups:/backups
+    networks:
+      - etl-network
+    depends_on:
+      - database
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+      # restart_policy:
+      #   condition: on-failure
+      #   delay: 5s
+      #   max_attempts: 3
+      #   window: 120s
+
+  replica:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-etl_db}
+      POSTGRES_USER: ${POSTGRES_USER:-replica}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replica_pass}
+    volumes:
+      - replica_data:/var/lib/postgresql/data
+    configs:
+      - source: replica_init_script
+        target: /docker-entrypoint-initdb.d/01-replica-init.sql
+    networks:
+      - etl-network
+    depends_on:
+      - database
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.0
+    command: etcd -name etcd0 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    networks:
+      - etl-network
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+
+  patroni:
+    image: zalando/patroni:latest
+    environment:
+      PATRONI_SCOPE: etl-cluster
+      PATRONI_NAME: node1
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_ETCD_HOSTS: etcd:2379
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PATRONI_POSTGRESQL_PASSWORD: postgres
+      PATRONI_POSTGRESQL_SUPERUSER_PASSWORD: postgres
+      PATRONI_POSTGRESQL_REPLICATION_PASSWORD: rep_pass
+    volumes:
+      - patroni_data:/var/lib/postgresql/data
+    networks:
+      - etl-network
+    depends_on:
+      - etcd
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+
   # -----------------------------------------------
   # Frontend
   # -----------------------------------------------
@@ -65,6 +176,8 @@ services:
         -XX:+ParallelRefProcEnabled
         -XX:+UseStringDeduplication
         -Djava.net.preferIPv4Stack=true
+    volumes:
+      - keycloak_themes:/opt/keycloak/themes
     configs:
       - source: team1_realm
         target: /opt/keycloak/data/import/team1_realm.json
@@ -72,8 +185,6 @@ services:
         target: /opt/keycloak/data/import/team2_realm.json
       - source: team3_realm
         target: /opt/keycloak/data/import/team3_realm.json
-    volumes:
-      - keycloak_themes:/opt/keycloak/themes
     secrets:
       - ssl_cert
       - ssl_key
@@ -143,6 +254,120 @@ services:
       # restart_policy:
       #   condition: on-failure
 
+  # -----------------------------------------------
+  # Spark
+  # -----------------------------------------------
+  spark-master:
+    image: bitnami/spark:3.5.0
+    env_file:
+      - .env
+    environment:
+      - SPARK_MODE=master
+    # ports:
+    #   - "8087:8080" # Web UI
+    #   - "7077:7077" # Spark master port
+    volumes:
+      - spark-data:/bitnami
+      # TODO #6 write configs
+      - ./conf:/opt/bitnami/spark/conf
+      - ./data:/data
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+      # restart_policy:
+      #   condition: on-failure
+
+  # Spark worker nodes
+  spark-worker:
+    image: bitnami/spark:3.5.0
+    depends_on:
+      - spark-master
+    env_file:
+      - .env
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+    # ports:
+    #   - "8081:8081" # Worker Web UI
+    volumes:
+      - spark-worker-data:/bitnami
+      - ./data:/data
+    networks:
+      - etl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 2 # Start with 2 workers, adjust based on your needs
+      placement:
+        constraints:
+          - node.role == worker
+          - node.labels.compute == high
+        preferences:
+          - spread: node.id
+      resources:
+        limits:
+          cpus: "2"
+          memory: 3G
+        reservations:
+          cpus: "1"
+          memory: 2G
+      # restart_policy:
+      #   condition: on-failure
+
+    # Spark History Server for job history and logs
+    spark-history-server:
+      image: bitnami/spark:3.5.0
+      command:
+        - /opt/bitnami/spark/sbin/start-history-server.sh
+      env_file:
+        - .env
+      environment:
+        - SPARK_MODE=master # Using master mode for the history server
+        - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
+      # ports:
+      #   - "18080:18080" # History Server UI
+      volumes:
+        # TODO #7 write configs
+        - ./spark-logs:/spark-logs
+        - ./conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      networks:
+        - etl-network
+      deploy:
+        placement:
+          constraints:
+            - node.role == worker
+        resources:
+          limits:
+            cpus: "0.5"
+            memory: 1G
+          reservations:
+            cpus: "0.2"
+            memory: 512M
+
 # -----------------------------------------------
 # Networks
 # -----------------------------------------------
@@ -164,6 +389,12 @@ volumes:
   database_data:
     driver: local
     name: database_data
+  replica_data:
+    driver: local
+    name: replica_data
+  patroni_data:
+    driver: local
+    name: patroni_data
 
   frontend_data:
     driver: local
@@ -204,6 +435,8 @@ secrets:
 configs:
   init_script:
     file: ./services/database/init/01-init.sql
+  replica_init_script:
+    file: ./services/database/replica-init/01-replica-init.sql
 
   etl_project_realm:
     file: ./services/keycloak/realm-config/etl-project-realm.json

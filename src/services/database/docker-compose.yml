@@ -45,6 +45,32 @@ services:
     depends_on:
       - database
 
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.0
+    command: etcd -name etcd0 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    networks:
+      - etl-network
+
+  patroni:
+    image: zalando/patroni:latest
+    environment:
+      PATRONI_SCOPE: etl-cluster
+      PATRONI_NAME: node1
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_ETCD_HOSTS: etcd:2379
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PATRONI_POSTGRESQL_PASSWORD: postgres
+      PATRONI_POSTGRESQL_SUPERUSER_PASSWORD: postgres
+      PATRONI_POSTGRESQL_REPLICATION_PASSWORD: rep_pass
+    volumes:
+      - patroni_data:/var/lib/postgresql/data
+    networks:
+      - etl-network
+    depends_on:
+      - etcd
+
 networks:
   etl-network:
     driver: bridge
@@ -54,3 +80,5 @@ volumes:
     name: database_data
   replica_data:
     name: replica_data
+  patroni_data:
+    name: patroni_data

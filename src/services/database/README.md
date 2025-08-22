@@ -1,6 +1,6 @@
 # PostgreSQL Database Service (with Backup & HA)
 
-This service provides a **central PostgreSQL database** for your ETL platform, with automated backups and high-availability (HA) via replication.
+This service provides a **central PostgreSQL database** for your ETL platform, with automated backups and high-availability (HA) via replication and automated failover.
 
 ---
 
@@ -48,14 +48,81 @@ Test restores regularly to ensure backup integrity.
 
 ---
 
-## High Availability (HA)
+## High Availability (HA) & Automated Failover
 
 - **Replica**: Standby DB for failover.  
   Configure streaming replication via custom scripts in `./replica-init`.
 - **Failover**: Promote replica manually or automate with tools like [Patroni](https://patroni.readthedocs.io/en/latest/) or [pg_auto_failover](https://github.com/citusdata/pg_auto_failover).
 
-**Best Practice:**  
-Monitor replication lag and automate failover for production.
+---
+
+### Automating Failover (Patroni)
+
+**Patroni** automates PostgreSQL failover and leader election. It works well in containers and orchestrators like Docker Swarm.
+
+**Architecture:**
+
+- Each PostgreSQL node runs Patroni.
+- Patroni uses a distributed key-value store (etcd, Consul, or Kubernetes API) for cluster coordination.
+- Patroni monitors DB health and automatically promotes a replica if the primary fails.
+
+**Example Patroni Compose Service:**
+
+```yaml
+version: "3.8"
+services:
+  etcd:
+    image: quay.io/coreos/etcd:v3.5.0
+    command: etcd -name etcd0 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
+    ports:
+      - "2379:2379"
+    networks:
+      - etl-network
+
+  patroni:
+    image: zalando/patroni:latest
+    environment:
+      PATRONI_SCOPE: etl-cluster
+      PATRONI_NAME: node1
+      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
+      PATRONI_ETCD_HOSTS: etcd:2379
+      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
+      PATRONI_POSTGRESQL_PASSWORD: postgres
+      PATRONI_POSTGRESQL_SUPERUSER_PASSWORD: postgres
+      PATRONI_POSTGRESQL_REPLICATION_PASSWORD: rep_pass
+    volumes:
+      - patroni_data:/var/lib/postgresql/data
+    networks:
+      - etl-network
+    depends_on:
+      - etcd
+
+networks:
+  etl-network:
+    driver: bridge
+
+volumes:
+  patroni_data:
+```
+
+**For Swarm:**  
+Deploy multiple Patroni nodes as services, all pointing to the same etcd cluster. Swarm will handle container scheduling and restarts.
+
+#### Best Practices for Containerized HA
+
+- **Persist data** with named volumes.
+- **Use healthchecks** so Swarm/Compose can restart failed containers.
+- **Monitor cluster health** with Prometheus or OpenTelemetry.
+- **Test failover** regularly.
+- **Secure etcd/monitor** with authentication and firewalls.
+
+---
+
+#### Resources
+
+- [Patroni Docker Example](https://github.com/zalando/patroni/tree/master/docker)
+- [PostgreSQL HA Concepts](https://www.postgresql.org/docs/current/warm-standby.html)
+- [Docker Swarm Guide](https://docs.docker.com/engine/swarm/)
 
 ---
 

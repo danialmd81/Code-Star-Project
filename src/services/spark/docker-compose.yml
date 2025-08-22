@@ -1,3 +1,4 @@
+version: "3.8"
 services:
   # Spark master node
   spark-master:
@@ -91,29 +92,29 @@ services:
       restart_policy:
         condition: on-failure
 
-  # Spark History Server for job history and logs
-  spark-history-server:
-    image: bitnami/spark:3.5.0
-    command:
-      - /opt/bitnami/spark/sbin/start-history-server.sh
-    environment:
-      - SPARK_MODE=master # Using master mode for the history server
-      - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
-    # ports:
-    #   - "18080:18080" # History Server UI
-    volumes:
-      - ./spark-logs:/spark-logs
-      - ./conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
-    networks:
-      - etl-network
-    deploy:
-      placement:
-        constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "0.5"
-          memory: 1G
-        reservations:
-          cpus: "0.2"
-          memory: 512M
+    # Spark History Server for job history and logs
+    spark-history-server:
+      image: bitnami/spark:3.5.0
+      command:
+        - /opt/bitnami/spark/sbin/start-history-server.sh
+      environment:
+        - SPARK_MODE=master # Using master mode for the history server
+        - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
+      # ports:
+      #   - "18080:18080" # History Server UI
+      volumes:
+        - ./spark-logs:/spark-logs
+        - ./conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
+      networks:
+        - etl-network
+      deploy:
+        placement:
+          constraints:
+            - node.role == worker
+        resources:
+          limits:
+            cpus: "0.5"
+            memory: 1G
+          reservations:
+            cpus: "0.2"
+            memory: 512M
