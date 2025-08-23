@@ -56,65 +56,220 @@ Test restores regularly to ensure backup integrity.
 
 ---
 
-### Automating Failover (Patroni)
+### Automating Failover
 
-**Patroni** automates PostgreSQL failover and leader election. It works well in containers and orchestrators like Docker Swarm.
+#### 1. **What is repmgr?**
 
-**Architecture:**
+**repmgr** is an open-source tool for managing PostgreSQL replication and failover.  
 
-- Each PostgreSQL node runs Patroni.
-- Patroni uses a distributed key-value store (etcd, Consul, or Kubernetes API) for cluster coordination.
-- Patroni monitors DB health and automatically promotes a replica if the primary fails.
+- **Purpose:** It automates the setup, monitoring, and management of PostgreSQL streaming replication clusters.
+- **Key Features:**  
+  - Automatic failover: If the primary node fails, repmgr can promote a standby to primary.
+  - Node registration: Easily add/remove nodes.
+  - CLI tools for monitoring and management.
+- **Why use it?**  
+  - It’s mature, widely used, and integrates well with PostgreSQL.
+  - No need for an external key-value store (unlike Patroni or Stolon).
 
-**Example Patroni Compose Service:**
+---
 
-```yaml
+#### 2. **How does repmgr work?**
+
+- **Primary Node:** The main PostgreSQL server accepting writes.
+- **Standby Nodes:** Replicas that continuously sync data from the primary.
+- **repmgrd Daemon:** Runs on each node, monitors cluster health, and triggers failover if needed.
+- **Replication:** Uses PostgreSQL’s built-in streaming replication.
+
+**Failover Process:**  
+If the primary fails, repmgrd promotes a standby to primary and updates the cluster state.
+
+---
+
+#### 3. **Architecture Diagram**
+
+```
++-------------------+      +-------------------+
+|   PostgreSQL DB   |<---->|   repmgrd daemon  |
+|   (Primary Node)  |      | (Monitors health) |
++-------------------+      +-------------------+
+        ^                        ^
+        |                        |
++-------------------+      +-------------------+
+|   PostgreSQL DB   |<---->|   repmgrd daemon  |
+|   (Standby Node)  |      | (Monitors health) |
++-------------------+      +-------------------+
+
++-------------------+
+|   Backup Service  |
+| (Automated Dumps) |
++-------------------+
+```
+
+---
+
+#### 4. **Step-by-Step Implementation**
+
+##### **A. Prepare Your Docker Compose File**
+
+We’ll use the official Bitnami image: [`bitnami/postgresql-repmgr`](https://hub.docker.com/r/bitnami/postgresql-repmgr).
+
+````yaml
 version: "3.8"
+
 services:
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.0
-    command: etcd -name etcd0 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
+  primary:
+    image: bitnami/postgresql-repmgr:15
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=postgres
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=etl_db
+      - REPMGR_PRIMARY_HOST=primary
+      - REPMGR_PARTNER_NODES=primary,standby
+      - REPMGR_NODE_NAME=primary
+      - REPMGR_NODE_NETWORK_NAME=primary
+      - REPMGR_PORT_NUMBER=5432
+      - REPMGR_LOG_LEVEL=INFO
+      - REPMGR_PASSWORD=repmgrpass
+    volumes:
+      - primary_data:/bitnami/postgresql
+    networks:
+      - etl-network
     ports:
-      - "2379:2379"
+      - "5432:5432"
+
+  standby:
+    image: bitnami/postgresql-repmgr:15
+    environment:
+      - POSTGRESQL_POSTGRES_PASSWORD=postgres
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=etl_db
+      - REPMGR_PRIMARY_HOST=primary
+      - REPMGR_PARTNER_NODES=primary,standby
+      - REPMGR_NODE_NAME=standby
+      - REPMGR_NODE_NETWORK_NAME=standby
+      - REPMGR_PORT_NUMBER=5432
+      - REPMGR_LOG_LEVEL=INFO
+      - REPMGR_PASSWORD=repmgrpass
+    volumes:
+      - standby_data:/bitnami/postgresql
     networks:
       - etl-network
 
-  patroni:
-    image: zalando/patroni:latest
+  backup:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
     environment:
-      PATRONI_SCOPE: etl-cluster
-      PATRONI_NAME: node1
-      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
-      PATRONI_ETCD_HOSTS: etcd:2379
-      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
-      PATRONI_POSTGRESQL_PASSWORD: postgres
-      PATRONI_POSTGRESQL_SUPERUSER_PASSWORD: postgres
-      PATRONI_POSTGRESQL_REPLICATION_PASSWORD: rep_pass
+      POSTGRES_HOST: primary
+      POSTGRES_DB: etl_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      SCHEDULE: "0 3 * * *"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
     volumes:
-      - patroni_data:/var/lib/postgresql/data
+      - ./backups:/backups
     networks:
       - etl-network
     depends_on:
-      - etcd
+      - primary
 
 networks:
   etl-network:
     driver: bridge
 
 volumes:
-  patroni_data:
-```
+  primary_data:
+    name: primary_data
+  standby_data:
+    name: standby_data
+````
 
-**For Swarm:**  
-Deploy multiple Patroni nodes as services, all pointing to the same etcd cluster. Swarm will handle container scheduling and restarts.
+---
 
-#### Best Practices for Containerized HA
+##### **B. Explanation of Each Service**
+
+- **primary**: Main PostgreSQL node, managed by repmgr.
+- **standby**: Replica node, automatically kept in sync and promoted if the primary fails.
+- **backup**: Connects to the primary node and creates scheduled backups.
+
+---
+
+##### **C. How to Deploy**
+
+1. **Start the cluster:**
+
+   ```sh
+   docker compose up -d
+   ```
+
+2. **Check cluster status:**
+
+   ```sh
+   docker exec -it <primary_container> repmgr cluster show
+   ```
+
+   This shows which node is primary and which are standbys.
+
+---
+
+##### **D. How Automated Failover Works**
+
+- **repmgrd** runs on each node, monitoring the primary.
+- If the primary fails, repmgrd promotes a standby to primary.
+- The cluster continues to operate with minimal downtime.
+
+---
+
+##### **E. How Backups Work**
+
+- The backup service connects to the primary and dumps its contents on a schedule.
+- Backups are stored in the `./backups` directory.
+- Restore using:
+
+  ```sh
+  docker exec -i primary psql -U postgres -d etl_db < ./backups/your_backup.sql
+  ```
+
+---
+
+#### 5. **Industry Best Practices**
 
 - **Persist data** with named volumes.
-- **Use healthchecks** so Swarm/Compose can restart failed containers.
-- **Monitor cluster health** with Prometheus or OpenTelemetry.
-- **Test failover** regularly.
-- **Secure etcd/monitor** with authentication and firewalls.
+- **Automate backups** and test restores regularly.
+- **Monitor cluster health** (consider Prometheus, Grafana).
+- **Secure credentials** in environment variables or Docker secrets.
+- **Restrict network access** to trusted services only.
+- **Test failover** regularly to ensure reliability.
+
+---
+
+#### 6. **Common Pitfalls**
+
+- Not persisting data (risk of data loss).
+- Not testing restores (backups may be unusable).
+- Not monitoring health (failures go unnoticed).
+- Not securing credentials.
+
+---
+
+#### 7. **Security Considerations**
+
+- Use strong passwords and rotate regularly.
+- Restrict access to database.
+- Enable SSL for database connections in production.
+- Store secrets securely.
+
+---
+
+#### 8. **Further Learning Resources**
+
+- [Bitnami PostgreSQL repmgr Docs](https://github.com/bitnami/containers/tree/main/bitnami/postgresql-repmgr)
+- [repmgr Documentation](https://repmgr.org/)
+- [PostgreSQL Streaming Replication](https://www.postgresql.org/docs/current/warm-standby.html)
+- [Postgres Backup Local](https://github.com/prodrigestivill/docker-postgres-backup-local)
 
 ---
 
@@ -180,3 +335,5 @@ docker exec -i centraldb psql -U $POSTGRES_USER -d $POSTGRES_DB < ./backups/your
 - [Docker Official Postgres Image](https://hub.docker.com/_/postgres)
 - [Postgres Backup Local](https://github.com/prodrigestivill/docker-postgres-backup-local)
 - [Postgres Replication Guide](https://www.postgresql.org/docs/current/warm-standby.html)
+
+---

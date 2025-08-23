@@ -4,155 +4,78 @@ services:
   # -----------------------------------------------
   # Backend
   # -----------------------------------------------
+
   # -----------------------------------------------
   # Database
   # -----------------------------------------------
   database:
-    image: postgres:15-alpine
+    image: bitnami/postgresql-repmgr:15
+    container_name: database
     env_file:
       - .env
-    volumes:
-      - database_data:/var/lib/postgresql/data
+    environment:
+      - REPMGR_NODE_NAME=database-1
+      - REPMGR_NODE_NETWORK_NAME=database
     configs:
       - source: init_script
         target: /docker-entrypoint-initdb.d/01-init.sql
+    volumes:
+      - database_data:/bitnami/postgresql
     networks:
       - etl-network
+    ports:
+      - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 30s
       timeout: 5s
       retries: 5
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
-      # restart_policy:
-      #   condition: on-failure
-      #   delay: 5s
-      #   max_attempts: 3
-      #   window: 120s
+
+  # TODO #22 use a load balancer or virtual IP to always point to the current primary, regardless of which container it is.
+  replica:
+    image: bitnami/postgresql-repmgr:15
+    container_name: replica
+    env_file:
+      - .env
+    environment:
+      - REPMGR_NODE_NAME=replica-2
+      - REPMGR_NODE_NETWORK_NAME=replica
+    configs:
+      - source: replica_init_script
+        target: /docker-entrypoint-initdb.d/01-replica-init.sql
+    volumes:
+      - replica_data:/bitnami/postgresql
+    networks:
+      - etl-network
 
   backup:
     image: prodrigestivill/postgres-backup-local
+    container_name: backup
     environment:
       POSTGRES_HOST: database
-      POSTGRES_DB: ${POSTGRES_DB:-etl_db}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+      # POSTGRES_DB: ${POSTGRES_DB:-etl_db}
+      # POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      # POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+      SCHEDULE: "0 3 * * *"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
     volumes:
       - ./backups:/backups
     networks:
       - etl-network
     depends_on:
       - database
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
-      # restart_policy:
-      #   condition: on-failure
-      #   delay: 5s
-      #   max_attempts: 3
-      #   window: 120s
-
-  replica:
-    image: postgres:15-alpine
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-etl_db}
-      POSTGRES_USER: ${POSTGRES_USER:-replica}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-replica_pass}
-    volumes:
-      - replica_data:/var/lib/postgresql/data
-    configs:
-      - source: replica_init_script
-        target: /docker-entrypoint-initdb.d/01-replica-init.sql
-    networks:
-      - etl-network
-    depends_on:
-      - database
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
-
-  etcd:
-    image: quay.io/coreos/etcd:v3.5.0
-    command: etcd -name etcd0 -advertise-client-urls http://0.0.0.0:2379 -listen-client-urls http://0.0.0.0:2379
-    ports:
-      - "2379:2379"
-    networks:
-      - etl-network
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
-
-  patroni:
-    image: zalando/patroni:latest
-    environment:
-      PATRONI_SCOPE: etl-cluster
-      PATRONI_NAME: node1
-      PATRONI_RESTAPI_LISTEN: 0.0.0.0:8008
-      PATRONI_ETCD_HOSTS: etcd:2379
-      PATRONI_POSTGRESQL_DATA_DIR: /var/lib/postgresql/data
-      PATRONI_POSTGRESQL_PASSWORD: postgres
-      PATRONI_POSTGRESQL_SUPERUSER_PASSWORD: postgres
-      PATRONI_POSTGRESQL_REPLICATION_PASSWORD: rep_pass
-    volumes:
-      - patroni_data:/var/lib/postgresql/data
-    networks:
-      - etl-network
-    depends_on:
-      - etcd
-    deploy:
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "2"
-          memory: 2G
-        reservations:
-          cpus: "1"
-          memory: 1G
 
   # -----------------------------------------------
   # Frontend
   # -----------------------------------------------
+
   # -----------------------------------------------
   # Keycloak
   # -----------------------------------------------
