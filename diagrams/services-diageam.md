@@ -15,7 +15,7 @@ graph TD
 - Users upload data and interact with the ETL pipeline.
 - Authenticates via Keycloak (SSO).
 - Sends API requests to the Backend.
-- Exposes metrics/logs to OpenTelemetry and Grafana.
+- Exposes metrics and logs to the observability stack (OpenTelemetry Collector, Prometheus, Loki, Grafana).
 
 ---
 
@@ -37,7 +37,7 @@ graph TD
 - Stores and retrieves data from PostgreSQL.
 - Authenticates users via Keycloak.
 - Orchestrates Spark jobs for data transformation.
-- Sends metrics/logs to OpenTelemetry and Grafana.
+- Sends metrics and logs to the observability stack for monitoring and alerting.
 
 ---
 
@@ -60,9 +60,9 @@ graph TD
 
 **Explanation:**  
 
-- Keycloak provides authentication.
+- Keycloak provides authentication and authorization.
 - Stores user data in PostgreSQL.
-- Integrates with OpenTelemetry for monitoring.
+- Integrates with the observability stack for monitoring (metrics/logs sent to OpenTelemetry Collector, Prometheus, Loki).
 - Provides an admin portal for user management.
 
 ---
@@ -83,27 +83,33 @@ graph TD
 - Receives jobs from the Backend.
 - Reads/writes data to PostgreSQL.
 - Authenticates via Keycloak.
-- Sends metrics/logs to OpenTelemetry.
+- Sends metrics and logs to the observability stack for performance and health monitoring.
 
 ---
 
-## 5. **PostgreSQL Service Diagram**
+## 5. **Database Service Diagram**
 
 ```mermaid
 graph TD
-  Backend -->|Read/Write| PostgreSQL
-  Spark -->|Read/Write| PostgreSQL
-  Keycloak -->|User Data| PostgreSQL
-  PostgreSQL -->|Backup| BackupSystem
-  PostgreSQL -->|Metrics & Logs| OpenTelemetry
-  BackupSystem -->|Restore| PostgreSQL
+  Backend -->|Read/Write| Database[(PostgreSQL)]
+  Spark -->|Read/Write| Database
+  Keycloak -->|User Data| Database
+  Database -->|Backup| BackupSystem
+  Database -->|Metrics & Logs| OpenTelemetry
+  BackupSystem -->|Restore| Database
+  Database -->|Replication| PGReplica[(PostgreSQL Replica)]
+  BackupSystem -->|Store| BackupStorage
+  PGReplica -->|Failover| FailoverMechanism
+  FailoverMechanism -->|Promote| PGReplica
 ```
 
 **Explanation:**  
 
-- Central data store for all services.
-- Automatic backup and restore procedures.
-- Monitored via OpenTelemetry.
+- The **Database** service (PostgreSQL) is the central data store for all services.
+- Backend, Spark, and Keycloak interact with the database for data storage and retrieval.
+- Automatic backup and restore procedures are managed by the BackupSystem, which stores backups in BackupStorage.
+- The database is replicated for high availability using PGReplica, with failover managed by a FailoverMechanism.
+- All database operations, backup, and HA events are monitored via the observability stack (metrics/logs sent to OpenTelemetry Collector, Prometheus, Loki).
 
 ---
 
@@ -131,11 +137,11 @@ graph TD
   AllServices((All Services)) -->|Metrics & Logs| OpenTelemetry[OpenTelemetry Collector]
   AllServices -->|Host Metrics| NodeExporter[Node Exporter]
   AllServices -->|Container Metrics| cAdvisor[cAdvisor]
+  Promtail[Promtail] -->|Push Logs| Loki
   OpenTelemetry -->|Logs| Loki[Loki]
   NodeExporter -->|Metrics| Prometheus
   cAdvisor -->|Metrics| Prometheus
   OpenTelemetry -->|Metrics| Prometheus[Prometheus]
-  Promtail[Promtail] -->|Push Logs| Loki
   Prometheus -->|Data Source| Grafana[Grafana]
   Loki -->|Data Source| Grafana
   Grafana -->|Alerts| AlertManager[Alertmanager]
@@ -154,25 +160,7 @@ graph TD
 
 ---
 
-## 8. **Backup & HA Diagram**
-
-```mermaid
-graph TD
-  PostgreSQL -->|Replication| PGReplica[(PostgreSQL Replica)]
-  PostgreSQL -->|Backup| BackupSystem
-  BackupSystem -->|Store| BackupStorage
-  PGReplica -->|Failover| FailoverMechanism
-  FailoverMechanism -->|Promote| PGReplica
-```
-
-**Explanation:**  
-
-- PostgreSQL is replicated for high availability.
-- Automated backups and failover mechanisms ensure resilience.
-
----
-
-## 9. **CI/CD Pipeline Diagram**
+## 8. **CI/CD Pipeline Diagram**
 
 ```mermaid
 graph TD
@@ -188,22 +176,22 @@ graph TD
 - Developers push code to CI/CD (GitHub Actions/Jenkins).
 - Pipeline builds, tests, and deploys Docker images to Swarm managers.
 - Managers orchestrate deployment across worker nodes.
+- CI/CD pipeline events and deployment health can be monitored via the observability stack.
 
 ---
 
 ## **Summary Table: Service Interactions**
 
-| Service     | Depends On         | Exposes To         | Observability      |
-|-------------|--------------------|--------------------|--------------------|
-| Frontend    | Backend, Keycloak  | User               | OpenTelemetry, Grafana |
-| Backend     | PostgreSQL, Spark, Keycloak | Frontend      | OpenTelemetry, Grafana |
-| Keycloak    | PostgreSQL         | All Services       | OpenTelemetry      |
-| Spark       | PostgreSQL, Keycloak | Backend           | OpenTelemetry      |
-| PostgreSQL  | BackupSystem, PGReplica | Backend, Spark, Keycloak | OpenTelemetry      |
-| Nginx       | All Services       | User               | -                  |
-| Observability Stack | All Services | Admins/DevOps      | -                  |
-| Backup/HA   | PostgreSQL         | Admins/DevOps      | -                  |
-| CI/CD       | SwarmManagers      | Developer          | -                  |
+| Service              | Depends On                        | Exposes To                  | Observability Stack                        |
+|----------------------|-----------------------------------|-----------------------------|--------------------------------------------|
+| Frontend             | Backend, Keycloak                 | User                        | OpenTelemetry, Prometheus, Loki, Grafana   |
+| Backend              | PostgreSQL, Spark, Keycloak       | Frontend                    | OpenTelemetry, Prometheus, Loki, Grafana   |
+| Keycloak             | PostgreSQL                        | All Services                | OpenTelemetry, Prometheus, Loki, Grafana   |
+| Spark                | PostgreSQL, Keycloak              | Backend                     | OpenTelemetry, Prometheus, Loki, Grafana   |
+| PostgreSQL + Backup/HA | PGReplica, BackupSystem         | Backend, Spark, Keycloak, Admins/DevOps | OpenTelemetry, Prometheus, Loki, Grafana   |
+| Nginx                | All Services                      | User                        | OpenTelemetry, Prometheus, Loki, Grafana   |
+| Observability Stack  | All Services                      | Admins/DevOps               | -                                          |
+| CI/CD                | SwarmManagers                     | Developer                   | OpenTelemetry, Prometheus, Loki, Grafana   |
 
 ---
 
@@ -212,8 +200,9 @@ graph TD
 - Keep each service on its own overlay network for isolation.
 - Use internal service names for inter-service communication.
 - Only expose Nginx to the public; keep other services internal.
-- Monitor all services for health and performance.
+- Monitor all services for health, performance, and logs using the observability stack (OpenTelemetry Collector, Prometheus, Loki, Grafana, Alertmanager).
 - Automate backups and test restore procedures regularly.
+- Ensure alerting is configured for critical metrics and logs.
 
 ---
 
@@ -223,4 +212,5 @@ graph TD
 - [Keycloak Integration Patterns](https://www.keycloak.org/docs/latest/server_admin/#_integration)
 - [Spark on Docker](https://spark.apache.org/docs/latest/running-on-docker.html)
 - [Prometheus & Grafana Monitoring](https://prometheus.io/docs/introduction/overview/)
-- [CI/CD Best Practices](https://martinfowler.com/articles/continuousIntegration.html)
+- [Loki Log Aggregation](https://grafana.com/docs/loki/latest/)
+- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
