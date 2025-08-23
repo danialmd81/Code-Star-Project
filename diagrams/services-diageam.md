@@ -134,16 +134,24 @@ graph TD
 
 ```mermaid
 graph TD
-  AllServices((All Services)) -->|Metrics & Logs| OpenTelemetry[OpenTelemetry Collector]
-  AllServices -->|Host Metrics| NodeExporter[Node Exporter]
-  AllServices -->|Container Metrics| cAdvisor[cAdvisor]
-  Promtail[Promtail] -->|Push Logs| Loki
-  OpenTelemetry -->|Logs| Loki[Loki]
-  NodeExporter -->|Metrics| Prometheus
-  cAdvisor -->|Metrics| Prometheus
-  OpenTelemetry -->|Metrics| Prometheus[Prometheus]
-  Prometheus -->|Data Source| Grafana[Grafana]
+  Nodes((Nodes)) -->|Host Metrics| NodeExporter[Node Exporter]
+  Nodes -->|Container Metrics| cAdvisor[cAdvisor]
+  
+  AllServices((All Services)) -->|Metrics| OpenTelemetry
+  AllServices((All Services)) -->|Logs| Promtail
+
+  NodeExporter -->|Metrics| OpenTelemetry
+
+  cAdvisor -->|Metrics| OpenTelemetry
+
+  Promtail -->|Push Logs| Loki
+
+  OpenTelemetry -->|Metrics| Prometheus
+
   Loki -->|Data Source| Grafana
+
+  Prometheus -->|Data Source| Grafana
+
   Grafana -->|Alerts| AlertManager[Alertmanager]
 ```
 
