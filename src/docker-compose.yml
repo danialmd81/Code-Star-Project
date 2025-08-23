@@ -264,21 +264,19 @@ services:
     environment:
       - SPARK_MODE=master
     # ports:
-    #   - "8087:8080" # Web UI
+    #   - "8080:8080" # Web UI
     #   - "7077:7077" # Spark master port
+    configs:
+      - source: spark-defaults
+        target: /opt/bitnami/spark/conf/spark-defaults.conf
+      - source: spark-metrics
+        target: /opt/bitnami/spark/conf/metrics.properties
     volumes:
       - spark-data:/bitnami
-      # TODO #6 write configs
-      - ./conf:/opt/bitnami/spark/conf
+      # TODO #21 find a way for binding ./data in docker swarm cluster
       - ./data:/data
     networks:
       - etl-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     deploy:
       replicas: 1
       placement:
@@ -310,15 +308,10 @@ services:
     #   - "8081:8081" # Worker Web UI
     volumes:
       - spark-worker-data:/bitnami
+      # TODO #21 find a way for binding ./data in docker swarm cluster
       - ./data:/data
     networks:
       - etl-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     deploy:
       mode: replicated
       replicas: 2 # Start with 2 workers, adjust based on your needs
@@ -350,10 +343,12 @@ services:
         - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
       # ports:
       #   - "18080:18080" # History Server UI
+      configs:
+        - source: spark-defaults
+          target: /opt/bitnami/spark/conf/spark-defaults.conf
       volumes:
-        # TODO #7 write configs
+        # TODO #21 find a way for binding ./data in docker swarm cluster
         - ./spark-logs:/spark-logs
-        - ./conf/spark-defaults.conf:/opt/bitnami/spark/conf/spark-defaults.conf:ro
       networks:
         - etl-network
       deploy:
@@ -451,3 +446,8 @@ configs:
     file: ./services/nginx/nginx.conf
   keycloak.conf:
     file: ./services/nginx/conf.d/keycloak.conf
+
+  spark-defaults:
+    file: ./services/spark/conf/spark-defaults.conf
+  spark-metrics:
+    file: ./services/spark/conf/metrics.properties
