@@ -1,86 +1,6 @@
 version: "3.8"
 
-volumes:
-  prometheus-data:
-    driver: local
-    name: prometheus-data
-  grafana-data:
-    driver: local
-    name: grafana-data
-  loki-data:
-    driver: local
-    name: loki-data
-
-networks:
-  monitoring-network:
-    name: monitoring-network
-
 services:
-  # OpenTelemetry Collector: gathers metrics and logs from all services
-  otel-collector:
-    image: otel/opentelemetry-collector:0.85.0
-    command: ["--config=/etc/otelcol/config.yaml"]
-    volumes:
-      - ./otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
-    networks:
-      - monitoring-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:13133"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-
-  # Prometheus: stores metrics from OpenTelemetry
-  prometheus:
-    image: prom/prometheus:v2.46.0
-    command:
-      - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=15d"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus-data:/prometheus
-    networks:
-      - monitoring-network
-    depends_on:
-      - otel-collector
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9090/-/healthy",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 1G
-        reservations:
-          memory: 512M
-
-  # Node Exporter for host metrics (deploy on each node)
   node-exporter:
     image: prom/node-exporter:v1.6.0
     volumes:
@@ -92,10 +12,10 @@ services:
       - "--path.sysfs=/host/sys"
       - "--path.rootfs=/rootfs"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    # ports:
-    #   - "9100:9100"
+    ports:
+      - "9100:9100"
     networks:
-      - monitoring-network
+      - etl-network
     healthcheck:
       test:
         [
@@ -115,27 +35,68 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
-      restart_policy:
-        condition: on-failure
+      # restart_policy:
+      # condition: on-failure
       resources:
         limits:
           memory: 128M
         reservations:
           memory: 64M
 
-  # cAdvisor for container metrics
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    image: bitnami/cadvisor:0.53.0
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    # ports:
-    #   - "8080:8080"
+    privileged: true
+    # TODO #23 find a way to use cadvisor without root
+    user: root
+    userns_mode: host
+    ports:
+      - "8080:8080"
     networks:
-      - monitoring-network
+      - etl-network
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.platform.os == linux
+      # restart_policy:
+      # condition: on-failure
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.132.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    configs:
+      - source: otel_collector_config
+        target: /etc/otelcol/config.yaml
+    networks:
+      - etl-network
+    ports:
+      - "8889:8889" # Prometheus exporter endpoint
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "13133:13133" # Health check endpoint
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yml
+    volumes:
+      - prometheus-data:/prometheus
+    networks:
+      - etl-network
+    ports:
+      - "9090:9090"
+    depends_on:
+      - otel-collector
     healthcheck:
       test:
         [
@@ -144,106 +105,68 @@ services:
           "-q",
           "--tries=1",
           "--spider",
-          "http://localhost:8080/healthz",
+          "http://localhost:9090/-/healthy",
         ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - node.platform.os == linux
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
 
-  # Loki: stores logs from OpenTelemetry
   loki:
-    image: grafana/loki:2.9.3
+    image: grafana/loki:3.1.0
     command: -config.file=/etc/loki/local-config.yaml
+    configs:
+      - source: loki_config
+        target: /etc/loki/local-config.yaml
     volumes:
-      - ./loki/local-config.yaml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
     networks:
-      - monitoring-network
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3100/ready",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+      - etl-network
+    ports:
+      - "3100:3100"
+    # healthcheck:
+    #   test:
+    #     [
+    #       "CMD",
+    #       "wget",
+    #       "-q",
+    #       "--tries=1",
+    #       "--spider",
+    #       "http://localhost:3100/ready",
+    #     ]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
 
-  # Promtail for pushing logs to Loki
   promtail:
     image: grafana/promtail:2.9.3
+    command: -config.file=/etc/promtail/promtail-config.yaml
+    configs:
+      - source: promtail_config
+        target: /etc/promtail/promtail-config.yaml
     volumes:
       - /var/log:/var/log:ro
-      - ./promtail/promtail-config.yaml:/etc/promtail/promtail-config.yaml:ro
-    command: -config.file=/etc/promtail/promtail-config.yaml
     networks:
-      - monitoring-network
+      - etl-network
+    # ports:
+    # - "9080:9080" # Promtail ready endpoint (optional, for health checks)
     depends_on:
       - loki
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9080/ready",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - node.platform.os == linux
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
 
-  # Grafana: visualizes metrics and logs from Prometheus and Loki
   grafana:
-    image: grafana/grafana:10.1.0
+    image: grafana/grafana:11.5
+    # configs:
+    # - source: grafana_provisioning_1
+    # target: /etc/grafana/provisioning/file
+    # - source: grafana_dashboards_1
+    # target: /var/lib/grafana/dashboards/file.json
     volumes:
       - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
     networks:
-      - monitoring-network
+      - etl-network
+    ports:
+      - "3000:3000"
     depends_on:
       - prometheus
       - loki
@@ -261,27 +184,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
 
-  # Alertmanager: handles alerts from Grafana (and Prometheus)
   alertmanager:
     image: prom/alertmanager:v0.26.0
     command:
       - "--config.file=/etc/alertmanager/alertmanager.yml"
       - "--storage.path=/alertmanager"
-    volumes:
-      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    # configs:
+    # - source: alertmanager_config
+    # target: /etc/alertmanager/alertmanager.yml
     networks:
-      - monitoring-network
+      - etl-network
+    ports:
+      - "9093:9093"
     depends_on:
       - prometheus
     healthcheck:
@@ -298,13 +213,34 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
-    deploy:
-      mode: replicated
-      replicas: 1
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+
+networks:
+  etl-network:
+    name: etl-network
+
+volumes:
+  prometheus-data:
+    driver: local
+    name: prometheus-data
+  grafana-data:
+    driver: local
+    name: grafana-data
+  loki-data:
+    driver: local
+    name: loki-data
+
+configs:
+  otel_collector_config:
+    file: ./otel-collector/config.yaml
+  prometheus_config:
+    file: ./prometheus/prometheus.yml
+  promtail_config:
+    file: ./promtail/promtail-config.yaml
+  loki_config:
+    file: ./loki/local-config.yaml
+  grafana_provisioning_1:
+    file: ./grafana/provisioning/file
+  grafana_dashboards_1:
+    file: ./grafana/dashboards/file.json
+  alertmanager_config:
+    file: ./alertmanager/alertmanager.yml

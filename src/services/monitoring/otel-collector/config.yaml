@@ -1,16 +1,43 @@
 receivers:
+  # OTLP receiver for traces, metrics, logs from instrumented apps
   otlp:
     protocols:
       grpc:
         endpoint: 0.0.0.0:4317
       http:
         endpoint: 0.0.0.0:4318
+
+  # Prometheus receiver scrapes metrics endpoints from all services
   prometheus:
     config:
       scrape_configs:
-        - job_name: "otel-collector"
+        - job_name: "node-exporter"
           static_configs:
-            - targets: ["localhost:8888"]
+            - targets: ["node-exporter:9100"]
+        - job_name: "cadvisor"
+          static_configs:
+            - targets: ["cadvisor:8080"]
+        - job_name: "backend"
+          static_configs:
+            - targets: ["backend:8000"] # Adjust port/path as needed
+        - job_name: "database"
+          static_configs:
+            - targets: ["database:9187"] # Use postgres_exporter for metrics
+        - job_name: "frontend"
+          static_configs:
+            - targets: ["frontend:8080"] # Adjust port/path as needed
+        - job_name: "keycloak"
+          static_configs:
+            - targets: ["keycloak:8080"] # Keycloak Prometheus metrics
+        - job_name: "spark-master"
+          static_configs:
+            - targets: ["spark-master:8080"] # Spark master metrics
+        - job_name: "spark-worker"
+          static_configs:
+            - targets: ["spark-worker:8081"] # Spark worker metrics
+        - job_name: "nginx"
+          static_configs:
+            - targets: ["nginx-exporter:9113"] # Use nginx-prometheus-exporter
 
 processors:
   batch:
@@ -24,12 +51,8 @@ processors:
 exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
-  logging:
-    loglevel: debug
-  otlp:
-    endpoint: "jaeger:4317"
-    tls:
-      insecure: true
+  debug:
+    verbosity: detailed
 
 service:
   pipelines:
@@ -37,7 +60,11 @@ service:
       receivers: [otlp, prometheus]
       processors: [batch, memory_limiter]
       exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch, memory_limiter]
+      exporters: [debug]
     traces:
       receivers: [otlp]
       processors: [batch, memory_limiter]
-      exporters: [otlp]
+      exporters: [debug]
