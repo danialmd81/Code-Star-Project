@@ -19,7 +19,7 @@ receivers:
             - targets: ["cadvisor:8080"]
         - job_name: "backend"
           static_configs:
-            - targets: ["backend:8000"] # Adjust port/path as needed
+            - targets: ["backend:8000"] # Ensure port matches backend's metrics exposition port and that /metrics is exposed
         - job_name: "database"
           static_configs:
             - targets: ["database:9187"] # Use postgres_exporter for metrics

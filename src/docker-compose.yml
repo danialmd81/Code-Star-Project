@@ -651,7 +651,7 @@ configs:
   prometheus_config:
     file: ./services/monitoring/prometheus/prometheus.yml
   promtail_config:
-    file: ./services/monitoring/promtail/promtail.yaml
+    file: ./services/monitoring/promtail/promtail-config.yaml
   loki_config:
     file: ./services/monitoring/loki/local-config.yaml
   grafana_provisioning_1:
