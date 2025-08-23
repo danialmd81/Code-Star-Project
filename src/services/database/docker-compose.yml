@@ -10,8 +10,8 @@ services:
       - REPMGR_NODE_NAME=database-1
       - REPMGR_NODE_NETWORK_NAME=database
     configs:
-      source: init_script
-      target: /docker-entrypoint-initdb.d/01-init.sql
+      - source: init_script
+        target: /docker-entrypoint-initdb.d/01-init.sql
     volumes:
       - database_data:/bitnami/postgresql
     networks:
@@ -34,8 +34,8 @@ services:
       - REPMGR_NODE_NAME=replica-2
       - REPMGR_NODE_NETWORK_NAME=replica
     configs:
-      source: replica_init_script
-      target: /docker-entrypoint-initdb.d/01-replica-init.sql
+      - source: replica_init_script
+        target: /docker-entrypoint-initdb.d/01-replica-init.sql
     volumes:
       - replica_data:/bitnami/postgresql
     networks:
