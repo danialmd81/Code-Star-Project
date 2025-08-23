@@ -18,7 +18,7 @@ ingester:
 
 schema_config:
   configs:
-    - from: 2024-06-07
+    - from: 2020-01-01
       store: boltdb-shipper
       object_store: filesystem
       schema: v11
