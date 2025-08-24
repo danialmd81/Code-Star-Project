@@ -64,6 +64,7 @@ services:
       #     cpus: "0.5"
       #     memory: 512M
 
+  # HAProxy for database
   database:
     image: haproxy:alpine
     configs:
@@ -81,6 +82,31 @@ services:
       placement:
         constraints:
           - node.role == worker
+
+  pgadmin:
+    image: dpage/pgadmin4:8.5
+    env_file:
+      - .env
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - etl-network
+    # ports:
+    # - "80:80"
+    # - "443:443"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
   backup:
     image: prodrigestivill/postgres-backup-local:17-alpine
@@ -155,13 +181,13 @@ services:
       placement:
         constraints:
           - node.role == worker
-      resources:
-        limits:
-          cpus: "1"
-          memory: 2G
-        reservations:
-          cpus: "0.5"
-          memory: 1G
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 2G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 1G
 
   # -----------------------------------------------
   # Monitoring
@@ -438,12 +464,13 @@ services:
       - ssl_cert
       - ssl_key
     ports:
-      - "80:80" # nginx
-      - "443:443" # nginx
-      - "3000:3000" # grafana
-      - "5432:5432" # database
-      - "8080:8080" # keycloak
-      - "8443:8443" # keycloak
+      - "80:80" # nginx HTTP
+      - "443:443" # nginx HTTPS
+      - "3000:3000" # grafana HTTP
+      - "5050:5050" # database HTTP
+      - "5051:5051" # database HTTPS
+      - "8080:8080" # keycloak HTTP
+      - "8443:8443" # keycloak HTTPS
     networks:
       - etl-network
     healthcheck:
@@ -597,9 +624,9 @@ volumes:
   replica_data:
     driver: local
     name: replica_data
-  patroni_data:
+  pgadmin_data:
     driver: local
-    name: patroni_data
+    name: pgadmin_data
 
   frontend_data:
     driver: local
