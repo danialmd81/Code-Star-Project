@@ -64,12 +64,12 @@ services:
       placement:
         constraints:
           - node.role == worker
-Networks:
+networks:
   etl-network:
     driver: bridge
     name: etl-network
 
-Volumes:
+volumes:
   database_data:
     driver: local
     name: database_data
