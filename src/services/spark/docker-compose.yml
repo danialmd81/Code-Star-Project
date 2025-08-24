@@ -3,12 +3,12 @@ services:
   spark-master:
     image: bitnami/spark:3.5.0
     env_file:
-      - ../../.env
+      - .env
     environment:
       - SPARK_MODE=master
-    ports:
-      - "8080:8080" # Web UI
-      - "7077:7077" # Spark master port
+    # ports:
+    #   - "8080:8080" # Web UI
+    #   - "7077:7077" # Spark master port
     configs:
       - source: spark-defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
@@ -16,47 +16,97 @@ services:
         target: /opt/bitnami/spark/conf/metrics.properties
     volumes:
       - spark-data:/bitnami
-      - ./data:/data
+      # TODO #21 find a way for binding ./data in docker swarm cluster
+      # - ./data:/data
     networks:
       - etl-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # restart_policy:
+      #   condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 1G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 512M
 
+  # Spark worker nodes
   spark-worker:
     image: bitnami/spark:3.5.0
     depends_on:
       - spark-master
     env_file:
-      - ../../.env
+      - .env
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=2G
       - SPARK_WORKER_CORES=2
-    ports:
-      - "8081:8081" # Worker Web UI
+    # ports:
+    #   - "8081:8081" # Worker Web UI
     volumes:
       - spark-worker-data:/bitnami
-      - ./data:/data
+      # TODO #21 find a way for binding ./data in docker swarm cluster
+      # - ./data:/data
     networks:
       - etl-network
+    deploy:
+      mode: replicated
+      replicas: 2 # Start with 2 workers, adjust based on your needs
+      placement:
+        constraints:
+          - node.role == worker
+        preferences:
+          - spread: node.id
+      # restart_policy:
+      #   condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 1G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 512M
 
+  # Spark History Server for job history and logs
   spark-history-server:
     image: bitnami/spark:3.5.0
     command:
       - /opt/bitnami/spark/sbin/start-history-server.sh
     env_file:
-      - ../../.env
+      - .env
     environment:
       - SPARK_MODE=master # Using master mode for the history server
       - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
-    ports:
-      - "18080:18080" # History Server UI
+    # ports:
+    #   - "18080:18080" # History Server UI
     configs:
       - source: spark-defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
     volumes:
-      - ./spark-logs:/spark-logs
+      # TODO #21 find a way for binding ./data in docker swarm cluster
+      - ~/spark-logs:/spark-logs
     networks:
       - etl-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.25"
+      #     memory: 256M
+      #   reservations:
+      #     cpus: "0.1"
+      #     memory: 128M
 
 networks:
   etl-network:

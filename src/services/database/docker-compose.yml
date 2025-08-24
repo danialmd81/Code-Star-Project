@@ -1,14 +1,14 @@
 version: "3.8"
 
 services:
-  database:
+  pg-0:
     image: bitnami/postgresql-repmgr:15
-    container_name: database
+    container_name: pg-0
     env_file:
       - ../../.env
     environment:
-      - REPMGR_NODE_NAME=database-1
-      - REPMGR_NODE_NETWORK_NAME=database
+      - REPMGR_NODE_NAME=pg-0
+      - REPMGR_NODE_NETWORK_NAME=pg-0
     configs:
       - source: init_script
         target: /docker-entrypoint-initdb.d/01-init.sql
@@ -16,67 +16,125 @@ services:
       - database_data:/bitnami/postgresql
     networks:
       - etl-network
-    ports:
-      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 30s
       timeout: 5s
       retries: 5
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
 
-  # TODO #22 use a load balancer or virtual IP to always point to the current primary, regardless of which container it is.
-  replica:
+  pg-1:
     image: bitnami/postgresql-repmgr:15
-    container_name: replica
+    container_name: pg-1
     env_file:
       - ../../.env
     environment:
-      - REPMGR_NODE_NAME=replica-2
-      - REPMGR_NODE_NETWORK_NAME=replica
+      - REPMGR_NODE_NAME=pg-1
+      - REPMGR_NODE_NETWORK_NAME=pg-1
     configs:
       - source: replica_init_script
-        target: /docker-entrypoint-initdb.d/01-replica-init.sql
+        target: /docker-entrypoint-initdb.d/01-pg-1-init.sql
     volumes:
       - replica_data:/bitnami/postgresql
     networks:
       - etl-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # HAProxy for database
+  database:
+    image: haproxy:alpine
+    container_name: haproxy
+    configs:
+      - source: ha-config
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    networks:
+      - etl-network
+    ports:
+      - "5432:5432"
+    depends_on:
+      - pg-0
+      - pg-1
+
+  pgadmin:
+    image: dpage/pgadmin4:8.5
+    env_file:
+      - .env
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - etl-network
+    # ports:
+    # - "80:80"
+    # - "443:443"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
   backup:
     image: prodrigestivill/postgres-backup-local
     container_name: backup
-    environment:
-      POSTGRES_HOST: database
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-
-      # POSTGRES_DB: ${POSTGRES_DB:-etl_db}
-      # POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      # POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-
-      SCHEDULE: "0 3 * * *"
-      BACKUP_KEEP_DAYS: 7
-      BACKUP_KEEP_WEEKS: 4
-      BACKUP_KEEP_MONTHS: 6
+    env_file:
+      - ../../.env
     volumes:
       - ./backups:/backups
     networks:
       - etl-network
     depends_on:
-      - database
+      - pg-0
 
 networks:
   etl-network:
-    driver: bridge
+    driver: overlay
+    attachable: true
+    name: etl-network
 
 volumes:
   database_data:
     name: database_data
   replica_data:
     name: replica_data
+  pgadmin_data:
+    driver: local
+    name: pgadmin_data
 
 configs:
   init_script:
     file: ./init/01-init.sql
   replica_init_script:
-    file: ./replica-init/01-replica-init.sql
+    file: ./replica-init/01-init.sql
+  ha-config:
+    file: ./haproxy.cfg

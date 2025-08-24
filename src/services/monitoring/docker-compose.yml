@@ -12,36 +12,20 @@ services:
       - "--path.sysfs=/host/sys"
       - "--path.rootfs=/rootfs"
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    ports:
-      - "9100:9100"
+    # ports:
+    # - "9100:9100"
     networks:
       - etl-network
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9100/metrics",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     deploy:
       mode: global
       placement:
         constraints:
           - node.platform.os == linux
-      # restart_policy:
-      # condition: on-failure
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+      # resources:
+      #   limits:
+      #     memory: 128M
+      #   reservations:
+      #     memory: 64M
 
   cadvisor:
     image: bitnami/cadvisor:0.53.0
@@ -54,8 +38,8 @@ services:
     # TODO #23 find a way to use cadvisor without root
     user: root
     userns_mode: host
-    ports:
-      - "8080:8080"
+    # ports:
+    # - "8080:8080"
     networks:
       - etl-network
     deploy:
@@ -63,8 +47,11 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
-      # restart_policy:
-      # condition: on-failure
+      # resources:
+      #   limits:
+      #     memory: 256M
+      #   reservations:
+      #     memory: 128M
 
   otel-collector:
     image: otel/opentelemetry-collector:0.132.0
@@ -79,6 +66,19 @@ services:
       - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
       - "13133:13133" # Health check endpoint
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
   prometheus:
     image: prom/prometheus:v3.5.0
@@ -93,24 +93,23 @@ services:
       - prometheus-data:/prometheus
     networks:
       - etl-network
-    ports:
-      - "9090:9090"
+    # ports:
+    # - "9090:9090"
     depends_on:
       - otel-collector
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9090/-/healthy",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 1G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 512M
 
   loki:
     image: grafana/loki:3.1.0
@@ -122,22 +121,21 @@ services:
       - loki-data:/loki
     networks:
       - etl-network
-    ports:
-      - "3100:3100"
-    # healthcheck:
-    #   test:
-    #     [
-    #       "CMD",
-    #       "wget",
-    #       "-q",
-    #       "--tries=1",
-    #       "--spider",
-    #       "http://localhost:3100/ready",
-    #     ]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 30s
+    # ports:
+    # - "3100:3100"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
   promtail:
     image: grafana/promtail:2.9.3
@@ -153,6 +151,19 @@ services:
     # - "9080:9080" # Promtail ready endpoint (optional, for health checks)
     depends_on:
       - loki
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.25"
+      #     memory: 256M
+      #   reservations:
+      #     cpus: "0.1"
+      #     memory: 128M
 
   grafana:
     image: grafana/grafana:11.5
@@ -165,8 +176,8 @@ services:
       - grafana-data:/var/lib/grafana
     networks:
       - etl-network
-    ports:
-      - "3000:3000"
+    # ports:
+    # - "3000:3000"
     depends_on:
       - prometheus
       - loki
@@ -184,6 +195,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
   alertmanager:
     image: prom/alertmanager:v0.26.0
@@ -195,8 +219,8 @@ services:
     # target: /etc/alertmanager/alertmanager.yml
     networks:
       - etl-network
-    ports:
-      - "9093:9093"
+    # ports:
+    # - "9093:9093"
     depends_on:
       - prometheus
     healthcheck:
@@ -213,6 +237,19 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.25"
+      #     memory: 256M
+      #   reservations:
+      #     cpus: "0.1"
+      #     memory: 128M
 
 networks:
   etl-network:

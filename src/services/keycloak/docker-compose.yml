@@ -2,14 +2,15 @@ version: "3.8"
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:26.3
+    image: keycloak/keycloak:26.1
     command:
       - start
       - --import-realm
+      - --proxy-headers=xforwarded
     depends_on:
       - database
     env_file:
-      - ../../.env
+      - .env
     environment:
       # JVM settings
       JAVA_OPTS_APPEND: >-
@@ -21,10 +22,31 @@ services:
         -Djava.net.preferIPv4Stack=true
     volumes:
       - keycloak_themes:/opt/keycloak/themes
-      - ./realm-config:/opt/keycloak/data/import
-      - ../../secrets/:/run/secrets:ro
-    ports:
-      - "8443:8443" # HTTPS port
-      - "8080:8080" # HTTP port (behind reverse proxy)
+    configs:
+      - source: team1_realm
+        target: /opt/keycloak/data/import/team1_realm.json
+      - source: team2_realm
+        target: /opt/keycloak/data/import/team2_realm.json
+      - source: team3_realm
+        target: /opt/keycloak/data/import/team3_realm.json
+    secrets:
+      - ssl_cert
+      - ssl_key
+    # ports:
+    # - "8080:8080"
+    # - "8443:8443"
     networks:
       - etl-network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 2G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 1G
