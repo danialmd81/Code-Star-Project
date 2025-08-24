@@ -2,9 +2,9 @@ version: "3.8"
 
 services:
   keycloak:
-    image: quay.io/keycloak/keycloak:26.3
+    image: bitnami/keycloak:26.3.0
     command:
-      - start
+      # - start
       - --import-realm
     depends_on:
       - database
