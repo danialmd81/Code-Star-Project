@@ -69,7 +69,8 @@
     dest: /etc/docker/daemon.json
     content: |
       {
-          "registry-mirrors": ["https://hub.mecan.ir","https://hub.hamdocker.ir"]
+        "insecure-registries": ["https://docker.arvancloud.ir"],
+        "registry-mirrors": ["https://docker.arvancloud.ir"]
       }
     owner: root
     group: root
