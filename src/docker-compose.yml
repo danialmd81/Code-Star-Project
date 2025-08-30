@@ -92,9 +92,9 @@ services:
       - pgadmin_data:/var/lib/pgadmin
     networks:
       - etl_network
-    # ports:
-    # - "80:80"
-    # - "443:443"
+    ports:
+      - "5050:80"
+      - "5051:443"
     deploy:
       mode: replicated
       replicas: 1
@@ -173,9 +173,9 @@ services:
         target: /etc/ssl/certs/fullchain.pem
       - source: ssl_key
         target: /etc/ssl/private/privkey.pem
-    # ports:
-    # - "8080:8080"
-    # - "8443:8443"
+    ports:
+      - "8080:8080"
+      - "8443:8443"
     networks:
       - etl_network
     deploy:
@@ -294,8 +294,8 @@ services:
       - prometheus_data:/prometheus
     networks:
       - etl_network
-    # ports:
-    # - "9090:9090"
+    ports:
+      - "9090:9090"
     depends_on:
       - otel-collector
     deploy:
@@ -322,8 +322,8 @@ services:
       - loki_data:/loki
     networks:
       - etl_network
-    # ports:
-    # - "3100:3100"
+    ports:
+      - "3100:3100"
     deploy:
       mode: replicated
       replicas: 1
@@ -377,8 +377,8 @@ services:
       - grafana_data:/var/lib/grafana
     networks:
       - etl_network
-    # ports:
-    # - "3000:3000"
+    ports:
+      - "3000:3000"
     depends_on:
       - prometheus
       - loki
@@ -482,12 +482,12 @@ services:
       - 443:443
       # - "80:80" # nginx HTTP
       # - "443:443" # nginx HTTPS
-      - "3000:3000" # grafana HTTP
-      - "5000:5000" # registry HTTP
-      - "5050:5050" # database HTTP
-      - "5051:5051" # database HTTPS
-      - "8080:8080" # keycloak HTTP
-      - "8443:8443" # keycloak HTTPS
+      # - "3000:3000" # grafana HTTP
+      # - "5000:5000" # registry HTTP
+      # - "5050:5050" # database HTTP
+      # - "5051:5051" # database HTTPS
+      # - "8080:8080" # keycloak HTTP
+      # - "8443:8443" # keycloak HTTPS
     networks:
       - etl_network
     healthcheck:
@@ -553,8 +553,8 @@ services:
       placement:
         constraints:
           - node.hostname == worker3
-    # ports:
-    # - "5000:5000"
+    ports:
+      - "5000:5000"
   # -----------------------------------------------
   # Spark
   # -----------------------------------------------
