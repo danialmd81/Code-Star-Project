@@ -114,7 +114,7 @@ services:
     env_file:
       - .env
     volumes:
-      - /home/danial/backups:/backups
+      - ${BACKUP_PATH:-./backups}:/backups
     networks:
       - etl_network
     depends_on:
@@ -512,7 +512,9 @@ services:
       - nginx
     volumes:
       - /home/danial/dockerize.ir:/etc/letsencrypt/live/dockerize.ir:rw
-      - /home/danial/certbot/www:/var/www/certbot:rw
+      - ${CERTBOT_WWW_PATH:-./certbot/www}:/var/www/certbot:rw
+    env_file:
+      - .env
     environment:
       - DOMAIN=dockerize.ir
       - EMAIL=danialmobinidh81@gmail.com
@@ -643,7 +645,7 @@ services:
         target: /opt/bitnami/spark/conf/spark-defaults.conf
     volumes:
       # TODO #21 find a way for binding ./data in docker swarm cluster
-      - /home/danial/spark-logs:/spark-logs
+      - ${SPARK_LOGS_PATH:-./spark-logs}:/spark-logs
     networks:
       - etl_network
     deploy:
