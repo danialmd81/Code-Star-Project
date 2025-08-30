@@ -234,9 +234,6 @@ services:
     # - CADVISOR_HEALTHCHECK_URL=http://localhost:8080/healthz
     command:
       - --docker_only=true
-      - --disable_root=true
-      - --docker=true
-      - --allow_dynamic_housekeeping=true
       - --housekeeping_interval=10s
     networks:
       - etl_network
