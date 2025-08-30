@@ -3,19 +3,19 @@ version: "3.8"
 services:
   nginx:
     image: nginx:stable-alpine
-    depends_on:
-      - keycloak
+    # depends_on:
+    # - keycloak
     env_file:
-      - .env
+      - ../../.env
     configs:
       - source: nginx_conf
         target: /etc/nginx/nginx.conf
-      - source: database_conf
-        target: /etc/nginx/conf.d/database.conf
-      - source: grafana_conf
-        target: /etc/nginx/conf.d/grafana.conf
-      - source: keycloak.conf
-        target: /etc/nginx/conf.d/keycloak.conf
+      # - source: database_conf
+      # target: /etc/nginx/conf.d/database.conf
+      # - source: grafana_conf
+      # target: /etc/nginx/conf.d/grafana.conf
+      # - source: keycloak.conf
+      # target: /etc/nginx/conf.d/keycloak.conf
     secrets:
       - ssl_cert
       - ssl_key
@@ -49,43 +49,55 @@ services:
       #   reservations:
       #     cpus: "0.1"
       #     memory: 128M
+    volumes:
+      - ./dockerize.ir:/etc/letsencrypt/live/dockerize.ir:ro
+      - ./certbot/www:/var/www/certbot:ro
 
   # Certificate renewal service
   certbot:
     image: certbot/certbot:latest
-    volumes:
-      - ../../secrets/:/run/secrets:ro
+    secrets:
+      - ssl_cert
+      - ssl_key
     depends_on:
       - nginx
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    volumes:
+      - ./dockerize.ir:/etc/letsencrypt/live/dockerize.ir:rw
+      - ./certbot/www:/var/www/certbot:rw
+    environment:
+      - DOMAIN=dockerize.ir
+      - EMAIL=your-email@example.com # Replace with your email
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet && kill -HUP $$(pidof nginx); sleep 12h & wait $${!}; done;'"
     networks:
       - etl-network
     deploy:
       placement:
         constraints:
-          - node.role == worker
+          - node.role == manager
 networks:
   etl-network:
-    driver: bridge
-    name: etl-network
+    external: true
 
 volumes:
   database_data:
-    driver: local
-    name: database_data
+    external: true
   replica_data:
-    driver: local
-    name: replica_data
+    external: true
   pgadmin_data:
-    driver: local
-    name: pgadmin_data
+    external: true
 
 configs:
   nginx_conf:
-    file: ./services/nginx/nginx.conf
-  database_conf:
-    file: ./services/nginx/conf.d/database.conf
-  grafana_conf:
-    file: ./services/nginx/conf.d/grafana.conf
-  keycloak.conf:
-    file: ./services/nginx/conf.d/keycloak.conf
+    file: ./nginx.conf
+  # database_conf:
+  #   file: ./conf.d/database.conf
+  # grafana_conf:
+  #   file: ./conf.d/grafana.conf
+  # keycloak.conf:
+  #   file: ./conf.d/keycloak.conf
+
+secrets:
+  ssl_cert:
+    file: ../../secrets/fullchain.pem
+  ssl_key:
+    file: ../../secrets/privkey.pem

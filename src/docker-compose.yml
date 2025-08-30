@@ -21,13 +21,13 @@ services:
     volumes:
       - database_data:/bitnami/postgresql
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == worker1
       # resources:
       #   limits:
       #     cpus: "1"
@@ -49,13 +49,14 @@ services:
     volumes:
       - replica_data:/bitnami/postgresql
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
           - node.role == worker
+          - node.hostname == worker2
       # resources:
       #   limits:
       #     cpus: "1"
@@ -68,10 +69,10 @@ services:
   database:
     image: haproxy:alpine
     configs:
-      - source: ha-config
+      - source: ha_proxy_config
         target: /usr/local/etc/haproxy/haproxy.cfg
     networks:
-      - etl-network
+      - etl_network
     # ports:
     # - "5432:5432"
     depends_on:
@@ -81,7 +82,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == master-1
 
   pgadmin:
     image: dpage/pgadmin4:8.5
@@ -90,10 +91,10 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
-      - etl-network
-    # ports:
-    # - "80:80"
-    # - "443:443"
+      - etl_network
+    ports:
+      - "5050:80"
+      - "5051:443"
     deploy:
       mode: replicated
       replicas: 1
@@ -112,10 +113,10 @@ services:
     image: prodrigestivill/postgres-backup-local:17-alpine
     env_file:
       - .env
-    # volumes:
-    # - ./backups:/backups
+    volumes:
+      - ${BACKUP_PATH:-./backups}:/backups
     networks:
-      - etl-network
+      - etl_network
     depends_on:
       - database
     deploy:
@@ -123,7 +124,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == worker3
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -168,13 +169,15 @@ services:
       - source: team3_realm
         target: /opt/keycloak/data/import/team3_realm.json
     secrets:
-      - ssl_cert
-      - ssl_key
-    # ports:
-    # - "8080:8080"
-    # - "8443:8443"
+      - source: ssl_cert
+        target: /etc/ssl/certs/fullchain.pem
+      - source: ssl_key
+        target: /etc/ssl/private/privkey.pem
+    ports:
+      - "8080:8080"
+      - "8443:8443"
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: replicated
       replicas: 1
@@ -206,7 +209,7 @@ services:
     # ports:
     # - "9100:9100"
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: global
       placement:
@@ -221,28 +224,29 @@ services:
   cadvisor:
     image: bitnami/cadvisor:0.53.0
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
-    privileged: true
-    # TODO #23 find a way to use cadvisor without root
-    user: root
-    userns_mode: host
-    # ports:
-    # - "8080:8080"
+      - /dev/disk/:/dev/disk:ro
+    # environment:
+    # - CADVISOR_HEALTHCHECK_URL=http://localhost:8080/healthz
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=10s
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: global
       placement:
         constraints:
           - node.platform.os == linux
-      # resources:
-      #   limits:
-      #     memory: 256M
-      #   reservations:
-      #     memory: 128M
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   otel-collector:
     image: otel/opentelemetry-collector:0.132.0
@@ -251,7 +255,7 @@ services:
       - source: otel_collector_config
         target: /etc/otelcol/config.yaml
     networks:
-      - etl-network
+      - etl_network
     ports:
       - "8889:8889" # Prometheus exporter endpoint
       - "4317:4317" # OTLP gRPC
@@ -281,11 +285,11 @@ services:
       - source: prometheus_config
         target: /etc/prometheus/prometheus.yml
     volumes:
-      - prometheus-data:/prometheus
+      - prometheus_data:/prometheus
     networks:
-      - etl-network
-    # ports:
-    # - "9090:9090"
+      - etl_network
+    ports:
+      - "9090:9090"
     depends_on:
       - otel-collector
     deploy:
@@ -309,11 +313,11 @@ services:
       - source: loki_config
         target: /etc/loki/local-config.yaml
     volumes:
-      - loki-data:/loki
+      - loki_data:/loki
     networks:
-      - etl-network
-    # ports:
-    # - "3100:3100"
+      - etl_network
+    ports:
+      - "3100:3100"
     deploy:
       mode: replicated
       replicas: 1
@@ -337,7 +341,7 @@ services:
     volumes:
       - /var/log:/var/log:ro
     networks:
-      - etl-network
+      - etl_network
     # ports:
     # - "9080:9080" # Promtail ready endpoint (optional, for health checks)
     depends_on:
@@ -364,28 +368,28 @@ services:
     # - source: grafana_dashboards_1
     # target: /var/lib/grafana/dashboards/file.json
     volumes:
-      - grafana-data:/var/lib/grafana
+      - grafana_data:/var/lib/grafana
     networks:
-      - etl-network
-    # ports:
-    # - "3000:3000"
+      - etl_network
+    ports:
+      - "3000:3000"
     depends_on:
       - prometheus
       - loki
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000/api/health",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # healthcheck:
+    #   test:
+    #     [
+    #       "CMD",
+    #       "wget",
+    #       "-q",
+    #       "--tries=1",
+    #       "--spider",
+    #       "http://localhost:3000/api/health",
+    #     ]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
     deploy:
       mode: replicated
       replicas: 1
@@ -409,25 +413,25 @@ services:
     # - source: alertmanager_config
     # target: /etc/alertmanager/alertmanager.yml
     networks:
-      - etl-network
+      - etl_network
     # ports:
     # - "9093:9093"
     depends_on:
       - prometheus
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9093/-/healthy",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # healthcheck:
+    #   test:
+    #     [
+    #       "CMD",
+    #       "wget",
+    #       "-q",
+    #       "--tries=1",
+    #       "--spider",
+    #       "http://localhost:9093/-/healthy",
+    #     ]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
     deploy:
       mode: replicated
       replicas: 1
@@ -460,19 +464,26 @@ services:
         target: /etc/nginx/conf.d/grafana.conf
       - source: keycloak.conf
         target: /etc/nginx/conf.d/keycloak.conf
+      - source: registry_conf
+        target: /etc/nginx/conf.d/registry.conf
     secrets:
-      - ssl_cert
-      - ssl_key
+      - source: ssl_cert
+        target: /etc/ssl/certs/fullchain.pem
+      - source: ssl_key
+        target: /etc/ssl/private/privkey.pem
     ports:
-      - "80:80" # nginx HTTP
-      - "443:443" # nginx HTTPS
-      - "3000:3000" # grafana HTTP
-      - "5050:5050" # database HTTP
-      - "5051:5051" # database HTTPS
-      - "8080:8080" # keycloak HTTP
-      - "8443:8443" # keycloak HTTPS
+      - 80:80
+      - 443:443
+      # - "80:80" # nginx HTTP
+      # - "443:443" # nginx HTTPS
+      # - "3000:3000" # grafana HTTP
+      # - "5000:5000" # registry HTTP
+      # - "5050:5050" # database HTTP
+      # - "5051:5051" # database HTTPS
+      # - "8080:8080" # keycloak HTTP
+      # - "8443:8443" # keycloak HTTPS
     networks:
-      - etl-network
+      - etl_network
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
@@ -483,7 +494,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == master-2
       # restart_policy:
       #   condition: on-failure
       # resources:
@@ -494,6 +505,52 @@ services:
       #     cpus: "0.1"
       #     memory: 128M
 
+    # Certificate renewal service
+  certbot:
+    image: certbot/certbot:latest
+    depends_on:
+      - nginx
+    volumes:
+      - ${CERTBOT_CERT_PATH:-./dockerize.ir}:/etc/letsencrypt/live/dockerize.ir:rw
+      - ${CERTBOT_WWW_PATH:-./certbot/www}:/var/www/certbot:rw
+    env_file:
+      - .env
+    environment:
+      - DOMAIN=dockerize.ir
+      - EMAIL=${CERTBOT_EMAIL}
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet && kill -HUP $$(pidof nginx); sleep 12h & wait $${!}; done;'"
+    networks:
+      - etl_network
+    deploy:
+      placement:
+        constraints:
+          - node.hostname == master-2
+  # -----------------------------------------------
+  # Registry
+  # -----------------------------------------------
+  registry:
+    image: registry:2
+    env_file:
+      - .env
+    secrets:
+      - source: ssl_cert
+        target: /etc/ssl/certs/fullchain.pem
+      - source: ssl_key
+        target: /etc/ssl/private/privkey.pem
+      - source: registry-auth
+        target: /etc/registry/auth/admin
+    volumes:
+      - registry_data:/var/lib/registry
+    networks:
+      - etl_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == worker3
+    ports:
+      - "5000:5000"
   # -----------------------------------------------
   # Spark
   # -----------------------------------------------
@@ -507,16 +564,16 @@ services:
     #   - "8080:8080" # Web UI
     #   - "7077:7077" # Spark master port
     configs:
-      - source: spark-defaults
+      - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
-      - source: spark-metrics
+      - source: spark_metrics
         target: /opt/bitnami/spark/conf/metrics.properties
     volumes:
-      - spark-data:/bitnami
+      - spark_data:/bitnami
       # TODO #21 find a way for binding ./data in docker swarm cluster
       # - ./data:/data
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: replicated
       replicas: 1
@@ -548,11 +605,11 @@ services:
     # ports:
     #   - "8081:8081" # Worker Web UI
     volumes:
-      - spark-worker-data:/bitnami
+      - spark_worker_data:/bitnami
       # TODO #21 find a way for binding ./data in docker swarm cluster
       # - ./data:/data
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: replicated
       replicas: 2 # Start with 2 workers, adjust based on your needs
@@ -584,13 +641,13 @@ services:
     # ports:
     #   - "18080:18080" # History Server UI
     configs:
-      - source: spark-defaults
+      - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
     volumes:
       # TODO #21 find a way for binding ./data in docker swarm cluster
-      - ~/spark-logs:/spark-logs
+      - ${SPARK_LOGS_PATH:-./spark-logs}:/spark-logs
     networks:
-      - etl-network
+      - etl_network
     deploy:
       mode: replicated
       replicas: 1
@@ -609,24 +666,30 @@ services:
 # Networks
 # -----------------------------------------------
 networks:
-  etl-network:
+  etl_network:
     driver: overlay
     attachable: true
-    name: etl-network
+    name: etl_network
 
 # -----------------------------------------------
 # Volumes
 # -----------------------------------------------
 volumes:
+  #worker1
   database_data:
     driver: local
     name: database_data
+  # worker2
   replica_data:
     driver: local
     name: replica_data
   pgadmin_data:
     driver: local
     name: pgadmin_data
+  # TODO
+  # worker3
+  # backup
+  # /home/danial/backups
 
   frontend_data:
     driver: local
@@ -636,21 +699,37 @@ volumes:
     driver: local
     name: keycloak_themes
 
-  prometheus-data:
+  prometheus_data:
     driver: local
-  grafana-data:
+    name: prometheus_data
+  grafana_data:
     driver: local
-  loki-data:
+    name: grafana_data
+  loki_data:
     driver: local
     name: loki_data
 
-  spark-data:
+  # TODO
+  # master-2
+  # certbot
+  # /home/danial/dockerize.ir
+  # /home/danial/certbot/www
+
+  # worker3
+  registry_data:
+    driver: local
+    name: registry_data
+
+  spark_data:
     driver: local
     name: spark_data
-  spark-worker-data:
+  spark_worker_data:
     driver: local
     name: spark_worker_data
-
+  # TODO
+  # worker3
+  # spark-history-server
+  # /home/danial/spark-logs:/spark-logs
 # -----------------------------------------------
 # Secrets
 # -----------------------------------------------
@@ -659,6 +738,9 @@ secrets:
     file: ./secrets/fullchain.pem
   ssl_key:
     file: ./secrets/privkey.pem
+
+  registry-auth:
+    file: ./services/registry/auth/admin
 # -----------------------------------------------
 # Configs
 # -----------------------------------------------
@@ -667,7 +749,7 @@ configs:
     file: ./services/database/init/01-init.sql
   replica_init_script:
     file: ./services/database/replica-init/01-init.sql
-  ha-config:
+  ha_proxy_config:
     file: ./services/database/haproxy.cfg
 
   etl_project_realm:
@@ -702,8 +784,10 @@ configs:
     file: ./services/nginx/conf.d/grafana.conf
   keycloak.conf:
     file: ./services/nginx/conf.d/keycloak.conf
+  registry_conf:
+    file: ./services/nginx/conf.d/registry.conf
 
-  spark-defaults:
+  spark_defaults:
     file: ./services/spark/conf/spark-defaults.conf
-  spark-metrics:
+  spark_metrics:
     file: ./services/spark/conf/metrics.properties

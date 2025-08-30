@@ -1,0 +1,5 @@
+src/secrets/
+src/services/nginx/dockerize.ir/
+src/services/nginx/certbot/
+src/services/registry/auth/
+src/.env
