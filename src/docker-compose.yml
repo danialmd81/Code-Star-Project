@@ -224,16 +224,23 @@ services:
   cadvisor:
     image: bitnami/cadvisor:0.53.0
     volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
-    privileged: true
-    # TODO #23 find a way to use cadvisor without root
-    user: root
-    userns_mode: host
-    # ports:
-    # - "8080:8080"
+      - /dev/disk/:/dev/disk:ro
+    environment:
+      - CADVISOR_HEALTHCHECK_URL=http://localhost:8080/healthz
+    command:
+      - --docker_only=true
+      - --disable_root=true
+      - --docker=true
+      - --storage_driver=influxdb
+      - --storage_driver_db=cadvisor
+      - --storage_driver_host=influxdb:8086
+      - --allow_dynamic_housekeeping=true
+      - --housekeeping_interval=10s
     networks:
       - etl_network
     deploy:
@@ -241,11 +248,11 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
-      # resources:
-      #   limits:
-      #     memory: 256M
-      #   reservations:
-      #     memory: 128M
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
   otel-collector:
     image: otel/opentelemetry-collector:0.132.0
