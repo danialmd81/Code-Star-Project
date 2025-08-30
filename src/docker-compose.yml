@@ -482,12 +482,12 @@ services:
       - 443:443
       # - "80:80" # nginx HTTP
       # - "443:443" # nginx HTTPS
-      # - "3000:3000" # grafana HTTP
-      # - "5000:5000" # registry HTTP
-      # - "5050:5050" # database HTTP
-      # - "5051:5051" # database HTTPS
-      # - "8080:8080" # keycloak HTTP
-      # - "8443:8443" # keycloak HTTPS
+      - "3000:3000" # grafana HTTP
+      - "5000:5000" # registry HTTP
+      - "5050:5050" # database HTTP
+      - "5051:5051" # database HTTPS
+      - "8080:8080" # keycloak HTTP
+      - "8443:8443" # keycloak HTTPS
     networks:
       - etl_network
     healthcheck:
