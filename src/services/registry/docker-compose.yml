@@ -1,0 +1,25 @@
+services:
+  registry:
+    image: registry:2
+    env_file:
+      - .env
+    secrets:
+      - source: ssl_cert
+        target: /etc/ssl/certs/fullchain.pem
+      - source: ssl_key
+        target: /etc/ssl/private/privkey.pem
+      - source: registry-auth
+        target: /etc/registry/auth/admin
+    volumes:
+      - registry_data:/var/lib/registry
+    networks:
+      - etl_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == worker3
+    # ports:
+    # - "5000:5000"
+

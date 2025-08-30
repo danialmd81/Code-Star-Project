@@ -463,19 +463,24 @@ services:
         target: /etc/nginx/conf.d/grafana.conf
       - source: keycloak.conf
         target: /etc/nginx/conf.d/keycloak.conf
+      - source: registry_conf
+        target: /etc/nginx/conf.d/registry.conf
     secrets:
       - source: ssl_cert
         target: /etc/ssl/certs/fullchain.pem
       - source: ssl_key
         target: /etc/ssl/private/privkey.pem
     ports:
-      - "80:80" # nginx HTTP
-      - "443:443" # nginx HTTPS
-      - "3000:3000" # grafana HTTP
-      - "5050:5050" # database HTTP
-      - "5051:5051" # database HTTPS
-      - "8080:8080" # keycloak HTTP
-      - "8443:8443" # keycloak HTTPS
+      - 80:80
+      - 443:443
+      # - "80:80" # nginx HTTP
+      # - "443:443" # nginx HTTPS
+      # - "3000:3000" # grafana HTTP
+      # - "5000:5000" # registry HTTP
+      # - "5050:5050" # database HTTP
+      # - "5051:5051" # database HTTPS
+      # - "8080:8080" # keycloak HTTP
+      # - "8443:8443" # keycloak HTTPS
     networks:
       - etl_network
     healthcheck:
@@ -529,6 +534,8 @@ services:
         target: /etc/ssl/certs/fullchain.pem
       - source: ssl_key
         target: /etc/ssl/private/privkey.pem
+      - source: registry-auth
+        target: /etc/registry/auth/admin
     volumes:
       - registry_data:/var/lib/registry
     networks:
@@ -728,6 +735,9 @@ secrets:
     file: ./secrets/fullchain.pem
   ssl_key:
     file: ./secrets/privkey.pem
+
+  registry-auth:
+    file: ./services/registry/auth/admin
 # -----------------------------------------------
 # Configs
 # -----------------------------------------------
@@ -771,6 +781,8 @@ configs:
     file: ./services/nginx/conf.d/grafana.conf
   keycloak.conf:
     file: ./services/nginx/conf.d/keycloak.conf
+  registry_conf:
+    file: ./services/nginx/conf.d/registry.conf
 
   spark_defaults:
     file: ./services/spark/conf/spark-defaults.conf
