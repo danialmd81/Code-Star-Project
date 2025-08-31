@@ -129,7 +129,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ${BACKUP_PATH:-./backups}:/backups
+      - /home/danial/backups:/backups
     networks:
       - etl_network
     depends_on:
@@ -558,10 +558,10 @@ services:
       - .env
     environment:
       - DOMAIN=dockerize.ir
-      - EMAIL=${CERTBOT_EMAIL}
+      - EMAIL=danialmobinidh81@gmail.com
     volumes:
-      - ${CERTBOT_CERT_PATH:-./dockerize.ir}:/etc/letsencrypt/live/dockerize.ir:rw
-      - ${CERTBOT_WWW_PATH:-./certbot/www}:/var/www/certbot:rw
+      - /home/danial/dockerize.ir:/etc/letsencrypt/live/dockerize.ir:rw
+      - /home/danial/certbot/www:/var/www/certbot:rw
     networks:
       - etl_network
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet && kill -HUP $$(pidof nginx); sleep 12h & wait $${!}; done;'"
@@ -690,7 +690,7 @@ services:
         target: /opt/bitnami/spark/conf/spark-defaults.conf
     volumes:
       # TODO #21 find a way for binding ./data in docker swarm cluster
-      - ${SPARK_LOGS_PATH:-./spark-logs}:/spark-logs
+      - /home/danial/spark-logs:/spark-logs
     networks:
       - etl_network
     deploy:
