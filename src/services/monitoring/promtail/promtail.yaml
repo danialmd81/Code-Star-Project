@@ -2,18 +2,96 @@ server:
   http_listen_port: 9080
 
 positions:
-  filename: /tmp/positions.yaml # This location needs to be writeable by Promtail.
+  filename: /tmp/positions.yaml
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
+    tenant_id: default
 
 scrape_configs:
-  - job_name: system
+  # Docker containers
+  - job_name: docker
     pipeline_stages:
+      - docker: {}
     static_configs:
       - targets:
           - localhost
         labels:
-          job: varlogs # A `job` label is fairly standard in prometheus and useful for linking metrics and logs.
-          host: promtail # A `host` label will help identify logs from this machine vs others
-          __path__: /var/log/*.log # The path matching uses a third party library: https://github.com/bmatcuk/doublestar
+          job: docker
+          __path__: /var/lib/docker/containers/*/*-json.log
+
+  # System logs
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          host: ${HOSTNAME}
+          __path__: /var/log/*log
+
+  # PostgreSQL logs
+  - job_name: postgresql
+    pipeline_stages:
+      - match:
+          selector: '{job="postgresql"}'
+          stages:
+            - regex:
+                expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+): (?P<message>.*)$'
+            - labels:
+                level:
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: postgresql
+          host: ${HOSTNAME}
+          __path__: /var/log/postgresql/*.log
+
+  # Nginx logs
+  - job_name: nginx
+    pipeline_stages:
+      - match:
+          selector: '{job="nginx"}'
+          stages:
+            - regex:
+                expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<timestamp>\d{2}\/\w{3}\/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4})\] "(?P<method>\S+) (?P<path>\S+) (?P<protocol>\S+)" (?P<status>\d+) (?P<bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          host: ${HOSTNAME}
+          __path__: /var/log/nginx/*log
+
+  # Keycloak logs
+  - job_name: keycloak
+    pipeline_stages:
+      - match:
+          selector: '{job="keycloak"}'
+          stages:
+            - regex:
+                expression: '(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) (?P<level>\w+)\s+\[(?P<source>[^\]]+)\] (?P<message>.*)'
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: keycloak
+          host: ${HOSTNAME}
+          __path__: /opt/keycloak/standalone/log/*.log
+
+  # Spark logs
+  - job_name: spark
+    pipeline_stages:
+      - match:
+          selector: '{job="spark"}'
+          stages:
+            - regex:
+                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: spark
+          host: ${HOSTNAME}
+          __path__: /spark-logs/*.log

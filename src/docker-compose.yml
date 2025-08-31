@@ -22,6 +22,12 @@ services:
       - database_data:/bitnami/postgresql
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -50,6 +56,12 @@ services:
       - replica_data:/bitnami/postgresql
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -77,6 +89,12 @@ services:
     depends_on:
       - pg-0
       - pg-1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       replicas: 1
       placement:
@@ -91,6 +109,12 @@ services:
     #   - "9187:9187"
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -109,6 +133,12 @@ services:
     ports:
       - "5050:80"
       - "5051:443"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -133,6 +163,12 @@ services:
       - etl_network
     depends_on:
       - database
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -192,6 +228,12 @@ services:
     # - "8443:8443"
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -225,6 +267,12 @@ services:
     # - "9093:9093"
     depends_on:
       - prometheus
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -261,6 +309,12 @@ services:
     depends_on:
       - prometheus
       - loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -288,12 +342,18 @@ services:
       - etl_network
     # ports:
     # - "3100:3100"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
-      replicas: 1 # Use 1 for simple setup, 2+ for HA
+      replicas: 2 # Use 1 for simple setup, 2+ for HA
       placement:
         constraints:
-          - node.hostname == worker1
+          - node.role == manager
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -313,6 +373,12 @@ services:
     ports:
       - "8889:8889" # Prometheus exporter endpoint
       - "4318:4318" # OTLP HTTP
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -346,6 +412,12 @@ services:
       - "9090:9090"
     depends_on:
       - otel-collector
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -368,18 +440,26 @@ services:
         target: /etc/promtail/promtail.yaml
     volumes:
       - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - etl_network
     # ports:
     # - "9080:9080"
     depends_on:
       - loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
-      mode: replicated
+      mode: global
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker1
+          - node.platform.os == linux
       # resources:
       #   limits:
       #     cpus: "0.25"
@@ -405,6 +485,12 @@ services:
       - etl_network
     ports:
       - "8080:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: global
       placement:
@@ -431,6 +517,12 @@ services:
     # - "9100:9100"
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: global
       placement:
@@ -487,6 +579,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -514,6 +612,12 @@ services:
     # - "9113:9113"
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -546,6 +650,12 @@ services:
     networks:
       - etl_network
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet && kill -HUP $$(pidof nginx); sleep 12h & wait $${!}; done;'"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       placement:
         constraints:
@@ -570,6 +680,12 @@ services:
       - registry_data:/var/lib/registry
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -600,6 +716,12 @@ services:
       # - ./data:/data
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
@@ -636,6 +758,12 @@ services:
       # - ./data:/data
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 2 # Start with 2 workers, adjust based on your needs
@@ -673,6 +801,12 @@ services:
       - /home/danial/spark-logs:/spark-logs
     networks:
       - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
       replicas: 1
