@@ -1,0 +1,11 @@
+---
+nfs_exports:
+  - path: /srv/docker/volumes
+    options: "*(rw,sync,no_subtree_check,no_root_squash)"
+    owner: nobody
+    group: nogroup
+    mode: "0777"
+
+nfs_packages:
+  - nfs-kernel-server
+  - nfs-common

@@ -1,0 +1,24 @@
+---
+- name: Install NFS packages
+  apt:
+    name: "{{ nfs_packages }}"
+    state: present
+    update_cache: yes
+
+- name: Create NFS export directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  with_items: "{{ nfs_exports }}"
+
+- name: Configure NFS exports
+  template:
+    src: exports.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart nfs

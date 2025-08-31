@@ -9,18 +9,167 @@
         user_groups: "sudo"
         user_pubkey_path: "roles/user/files/id_ed25519.pub"
         user_sudo: true
-    - role: docker # Installs Docker Engine
+    - role: docker
       vars:
-        docker_users: ["danial"] # Add user to Docker group
+        docker_users: ["danial"]
 
-# - name: Master Node Configuration
-#   hosts: masters
-#   become: true
-#   roles:
-#     - ssh
+- name: Configure NFS servers
+  hosts: managers
+  become: true
+  roles:
+    - role: nfs
+      vars:
+        nfs_exports:
+          - path: /srv/docker/volumes/database_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/keycloak_themes
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/prometheus_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/spark_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/spark_history_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
 
-# - name: Worker Node Configuration
-#   hosts: workers
-#   become: true
-#   roles:
-#     - ssh
+          - path: /srv/docker/volumes/grafana_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/replica_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/registry_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/pgadmin_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+
+          - path: /srv/docker/volumes/alertmanager_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/backup_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/loki_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+          - path: /srv/docker/volumes/spark_worker_data
+            options: "*(rw,sync,no_subtree_check,no_root_squash)"
+            owner: nobody
+            group: nogroup
+            mode: "0777"
+
+- name: Configure NFS clients
+  hosts: workers
+  become: true
+  tasks:
+    - name: Install NFS client
+      apt:
+        name: nfs-common
+        state: present
+        update_cache: yes
+
+    - name: Add NFS server to hosts file
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars['master-1']['ansible_host'] }} master-1"
+        state: present
+    - name: Add NFS server to hosts file
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars['master-2']['ansible_host'] }} master-2"
+        state: present
+    - name: Add NFS server to hosts file
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars['worker1']['ansible_host'] }} worker1"
+        state: present
+
+    - name: Create mount points
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      with_items:
+        - /srv/docker/volumes/database_data
+        - /srv/docker/volumes/keycloak_themes
+        - /srv/docker/volumes/prometheus_data
+        - /srv/docker/volumes/spark_data
+        - /srv/docker/volumes/spark_history_data
+
+        - /srv/docker/volumes/grafana_data
+        - /srv/docker/volumes/replica_data
+        - /srv/docker/volumes/registry_data
+        - /srv/docker/volumes/pgadmin_data
+
+        - /srv/docker/volumes/alertmanager_data
+        - /srv/docker/volumes/backup_data
+        - /srv/docker/volumes/loki_data
+        - /srv/docker/volumes/spark_worker_data
+
+    # - name: Mount NFS shares
+    #   mount:
+    #     path: "{{ item.path }}"
+    #     src: "master-2:{{ item.path }}"
+    #     fstype: nfs
+    #     opts: "rw,sync,hard,intr"
+    #     state: mounted
+    #   with_items:
+    #     - path: /srv/docker/volumes/database_data
+    #     - path: /srv/docker/volumes/keycloak_themes
+    #     - path: /srv/docker/volumes/prometheus_data
+    #     - path: /srv/docker/volumes/spark_data
+    #     - path: /srv/docker/volumes/spark_history_data
+    # - name: Mount NFS shares
+    #   mount:
+    #     path: "{{ item.path }}"
+    #     src: "master-1:{{ item.path }}"
+    #     fstype: nfs
+    #     opts: "rw,sync,hard,intr"
+    #     state: mounted
+    #   with_items:
+    #     - path: /srv/docker/volumes/grafana_data
+    #     - path: /srv/docker/volumes/replica_data
+    #     - path: /srv/docker/volumes/registry_data
+    #     - path: /srv/docker/volumes/pgadmin_data
+    # - name: Mount NFS shares
+    #   mount:
+    #     path: "{{ item.path }}"
+    #     src: "worker1:{{ item.path }}"
+    #     fstype: nfs
+    #     opts: "rw,sync,hard,intr"
+    #     state: mounted
+    #   with_items:
+    #     - path: /srv/docker/volumes/alertmanager_data
+    #     - path: /srv/docker/volumes/backup_data
+    #     - path: /srv/docker/volumes/loki_data
+    #     - path: /srv/docker/volumes/spark_worker_data

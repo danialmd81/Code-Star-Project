@@ -33,7 +33,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker1
+          - node.role == manager
       # resources:
       #   limits:
       #     cpus: "1"
@@ -67,7 +67,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker2
+          - node.role == worker
       # resources:
       #   limits:
       #     cpus: "1"
@@ -144,7 +144,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker2
+          - node.role == worker
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -174,7 +174,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker3
+          - node.role == worker
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -239,7 +239,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker2
+          - node.role == worker
       # resources:
       #   limits:
       #     cpus: "1"
@@ -278,7 +278,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker2
+          - node.role == worker
       # resources:
       #   limits:
       #     cpus: "0.25"
@@ -320,7 +320,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker3
+          - node.role == worker
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -456,7 +456,6 @@ services:
         tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: global
-      replicas: 1
       placement:
         constraints:
           - node.platform.os == linux
@@ -496,11 +495,11 @@ services:
       placement:
         constraints:
           - node.platform.os == linux
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
+      # resources:
+      #   limits:
+      #     memory: 256M
+      #   reservations:
+      #     memory: 128M
 
   node-exporter:
     image: prom/node-exporter:v1.6.0
@@ -691,7 +690,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker3
+          - node.role == worker
 
   # -----------------------------------------------
   # Spark
@@ -712,8 +711,6 @@ services:
         target: /opt/bitnami/spark/conf/metrics.properties
     volumes:
       - spark_data:/bitnami
-      # TODO #21 find a way for binding ./data in docker swarm cluster
-      # - ./data:/data
     networks:
       - etl_network
     logging:
@@ -754,8 +751,6 @@ services:
     #   - "8081:8081" # Worker Web UI
     volumes:
       - spark_worker_data:/bitnami
-      # TODO #21 find a way for binding ./data in docker swarm cluster
-      # - ./data:/data
     networks:
       - etl_network
     logging:
@@ -792,13 +787,13 @@ services:
     environment:
       - SPARK_MODE=master # Using master mode for the history server
       - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
-    # ports:
-    #   - "18080:18080" # History Server UI
+    ports:
+      - "18080:18080" # History Server UI
     configs:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
     volumes:
-      - /home/danial/spark-logs:/spark-logs
+      - spark_history_data:/spark-logs
     networks:
       - etl_network
     logging:
@@ -834,65 +829,105 @@ networks:
 # Volumes
 # -----------------------------------------------
 volumes:
-  #worker1
   database_data:
     driver: local
     name: database_data
-  # worker2
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/database_data"
   replica_data:
     driver: local
     name: replica_data
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/replica_data"
   pgadmin_data:
     driver: local
     name: pgadmin_data
-  # worker3
-  # backup
-  # /home/danial/backups
-
-  frontend_data:
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/pgadmin_data"
+  backup_data:
     driver: local
-    name: frontend_data
+    name: backup_data
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/backup"
 
-  # worker2
   keycloak_themes:
     driver: local
     name: keycloak_themes
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/keycloak_themes"
 
   prometheus_data:
     driver: local
-    name: prometheus_data
-  # worker3
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/prometheus_data"
   grafana_data:
     driver: local
     name: grafana_data
-  # worker1
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/grafana_data"
   loki_data:
     driver: local
     name: loki_data
-  # worker2
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/loki_data"
   alertmanager_data:
     driver: local
     name: alertmanager_data
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/alertmanager_data"
 
   # master-2
   # certbot
   # /home/danial/dockerize.ir
   # /home/danial/certbot/www
 
-  # worker3
   registry_data:
     driver: local
     name: registry_data
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/registry_data"
 
   spark_data:
     driver: local
     name: spark_data
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/spark_data"
   spark_worker_data:
     driver: local
     name: spark_worker_data
-  # worker3
-  # spark-history-server
-  # /home/danial/spark-logs:/spark-logs
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/spark_worker_data"
+  spark_history_data:
+    driver: local
+    name: spark_history_data
+    driver_opts:
+      type: nfs
+      o: addr=master-2,rw
+      device: ":/srv/docker/volumes/spark_history_data"
 # -----------------------------------------------
 # Secrets
 # -----------------------------------------------
