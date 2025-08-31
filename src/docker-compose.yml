@@ -328,7 +328,7 @@ services:
         target: /etc/loki/local-config.yaml
     user: "472:472" # Add this line to specify Loki user
     volumes:
-      - loki_data:/loki
+      - loki_data:/home/loki
     networks:
       - etl_network
     # ports:
