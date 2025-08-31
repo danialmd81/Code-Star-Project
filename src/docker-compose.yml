@@ -819,7 +819,7 @@ configs:
   # grafana_provisioning_1:
   # file: ./services/monitoring/grafana/provisioning/file
   grafana_dashboards:
-    file: ./services/monitoring/grafana/dashboards/file.json
+    file: ./services/monitoring/grafana/dashboards/main.json
   # alertmanager_config:
   # file: ./services/monitoring/alertmanager/alertmanager.yml
 
