@@ -11,6 +11,7 @@ This document details the volume configurations used in our Docker Swarm cluster
 | replica_data | local | worker2 | pg-1 | PostgreSQL replica data directory | Active |
 | pgadmin_data | local | worker2 | pgadmin | PgAdmin configuration and data | Active |
 | keycloak_themes | local | worker2 | keycloak | Custom Keycloak themes | Active |
+| alertmanager_data | local | worker2 | alertmanager | Alertmanager data | Active |
 | grafana_data | local | worker3 | grafana | Grafana dashboards and data | Active |
 | registry_data | local | worker3 | registry | Docker Registry storage | Active |
 | backup_data | **bind** | worker3 | backup | Database backups storage | TODO |

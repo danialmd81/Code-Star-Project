@@ -209,59 +209,98 @@ services:
   # -----------------------------------------------
   # Monitoring
   # -----------------------------------------------
-  node-exporter:
-    image: prom/node-exporter:v1.6.0
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
     command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/rootfs"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    # ports:
-    # - "9100:9100"
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    configs:
+      - source: alertmanager_config
+        target: /etc/alertmanager/alertmanager.yml
+    volumes:
+      - alertmanager_data:/alertmanager
     networks:
       - etl_network
+    # ports:
+    # - "9093:9093"
+    depends_on:
+      - prometheus
     deploy:
-      mode: global
+      mode: replicated
+      replicas: 1
       placement:
         constraints:
-          - node.platform.os == linux
+          - node.hostname == worker2
       # resources:
       #   limits:
-      #     memory: 128M
+      #     cpus: "0.25"
+      #     memory: 256M
       #   reservations:
-      #     memory: 64M
+      #     cpus: "0.1"
+      #     memory: 128M
 
-  cadvisor:
-    image: bitnami/cadvisor:0.53.0
-    user: "root:root"
+  grafana:
+    image: grafana/grafana:11.5
+    configs:
+      - source: grafana_dashboards_config
+        target: /etc/grafana/provisioning/dashboards/dashboards.yml
+      - source: grafana_datasources_config
+        target: /etc/grafana/provisioning/datasources/datasources.yml
+      - source: grafana_dashboard_node
+        target: /var/lib/grafana/dashboards/node.json
+      - source: grafana_dashboard_containers
+        target: /var/lib/grafana/dashboards/containers.json
+      - source: grafana_dashboard_postgres
+        target: /var/lib/grafana/dashboards/postgres.json
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
-    command:
-      - --docker_only=true
-      - --housekeeping_interval=10s
+      - grafana_data:/var/lib/grafana
     networks:
       - etl_network
     ports:
-      - "8080:8080"
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
     deploy:
-      mode: global
+      mode: replicated
+      replicas: 1
       placement:
         constraints:
-          - node.platform.os == linux
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
+          - node.hostname == worker3
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
+
+  loki:
+    image: grafana/loki:3.1.0
+    command: -config.file=/etc/loki/local-config.yaml
+    configs:
+      - source: loki_config
+        target: /etc/loki/local-config.yaml
+    # user: "root:root"
+    volumes:
+      - loki_data:/home/loki
+    networks:
+      - etl_network
+    # ports:
+    # - "3100:3100"
+    deploy:
+      mode: replicated
+      replicas: 1 # Use 1 for simple setup, 2+ for HA
+      placement:
+        constraints:
+          - node.hostname == worker1
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
   otel-collector:
     image: otel/opentelemetry-collector:0.132.0
@@ -297,6 +336,8 @@ services:
     configs:
       - source: prometheus_config
         target: /etc/prometheus/prometheus.yml
+      # - source: prometheus_rule
+      # target: /etc/prometheus/rules/main.yml
     volumes:
       - prometheus_data:/prometheus
     networks:
@@ -319,39 +360,12 @@ services:
       #     cpus: "0.5"
       #     memory: 512M
 
-  loki:
-    image: grafana/loki:3.1.0
-    command: -config.file=/etc/loki/local-config.yaml
-    configs:
-      - source: loki_config
-        target: /etc/loki/local-config.yaml
-    user: "root:root"
-    volumes:
-      - loki_data:/home/loki
-    networks:
-      - etl_network
-    # ports:
-    # - "3100:3100"
-    deploy:
-      mode: replicated
-      replicas: 1 # Use 1 for simple setup, 2+ for HA
-      placement:
-        constraints:
-          - node.hostname == worker1
-      # resources:
-      #   limits:
-      #     cpus: "0.5"
-      #     memory: 512M
-      #   reservations:
-      #     cpus: "0.25"
-      #     memory: 256M
-
   promtail:
     image: grafana/promtail:2.9.3
-    command: -config.file=/etc/promtail/promtail-config.yaml
+    command: -config.file=/etc/promtail/promtail.yaml
     configs:
       - source: promtail_config
-        target: /etc/promtail/promtail-config.yaml
+        target: /etc/promtail/promtail.yaml
     volumes:
       - /var/log:/var/log:ro
     networks:
@@ -374,63 +388,59 @@ services:
       #     cpus: "0.1"
       #     memory: 128M
 
-  grafana:
-    image: grafana/grafana:11.5
-    configs:
-      - source: grafana_dashboards
-        target: /var/lib/grafana/dashboards/main.json
-      # - source: grafana_provisioning_1
-      # target: /etc/grafana/provisioning/file
+  cadvisor:
+    image: bitnami/cadvisor:0.53.0
+    user: "root:root"
     volumes:
-      - grafana_data:/var/lib/grafana
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=10s
     networks:
       - etl_network
     ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
-      - loki
+      - "8080:8080"
     deploy:
-      mode: replicated
-      replicas: 1
+      mode: global
       placement:
         constraints:
-          - node.hostname == worker3
-      # resources:
-      #   limits:
-      #     cpus: "0.5"
-      #     memory: 512M
-      #   reservations:
-      #     cpus: "0.25"
-      #     memory: 256M
+          - node.platform.os == linux
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 128M
 
-  alertmanager:
-    image: prom/alertmanager:v0.26.0
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
-      - "--storage.path=/alertmanager"
-    # configs:
-    # - source: alertmanager_config
-    # target: /etc/alertmanager/alertmanager.yml
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    # ports:
+    # - "9100:9100"
     networks:
       - etl_network
-    # ports:
-    # - "9093:9093"
-    depends_on:
-      - prometheus
     deploy:
-      mode: replicated
-      replicas: 1
+      mode: global
       placement:
         constraints:
-          - node.role == worker
+          - node.platform.os == linux
       # resources:
       #   limits:
-      #     cpus: "0.25"
-      #     memory: 256M
-      #   reservations:
-      #     cpus: "0.1"
       #     memory: 128M
+      #   reservations:
+      #     memory: 64M
 
   # -----------------------------------------------
   # Nginx
@@ -457,6 +467,8 @@ services:
         target: /etc/ssl/certs/fullchain.pem
       - source: ssl_key
         target: /etc/ssl/private/privkey.pem
+      - source: registry-auth
+        target: /etc/registry/auth/admin
     ports:
       - 80:80
       - 443:443
@@ -552,8 +564,8 @@ services:
         target: /etc/ssl/private/privkey.pem
       - source: registry-auth
         target: /etc/registry/auth/admin
-    ports:
-      - "5000:5000"
+    # ports:
+    # - "5000:5000"
     volumes:
       - registry_data:/var/lib/registry
     networks:
@@ -723,6 +735,10 @@ volumes:
   loki_data:
     driver: local
     name: loki_data
+  # worker2
+  alertmanager_data:
+    driver: local
+    name: alertmanager_data
 
   # master-2
   # certbot
@@ -774,22 +790,28 @@ configs:
   team3_realm:
     file: ./services/keycloak/realm-config/team3-realm.json
 
+  alertmanager_config:
+    file: ./services/monitoring/alertmanager/alertmanager.yml
+  grafana_dashboards_config:
+    file: ./services/monitoring/grafana/provisioning/dashboards/dashboards.yml
+  grafana_datasources_config:
+    file: ./services/monitoring/grafana/provisioning/datasources/datasources.yml
+  grafana_dashboard_node:
+    file: ./services/monitoring/grafana/dashboards/node.json
+  grafana_dashboard_containers:
+    file: ./services/monitoring/grafana/dashboards/containers.json
+  grafana_dashboard_postgres:
+    file: ./services/monitoring/grafana/dashboards/postgres.json
+  loki_config:
+    file: ./services/monitoring/loki/local-config.yaml
   otel_collector_config:
     file: ./services/monitoring/otel-collector/config.yaml
   prometheus_config:
     file: ./services/monitoring/prometheus/prometheus.yml
-  # prometheus_rules_recording:
-  # file: ./services/monitoring/prometheus/rules/recording.yml
+  # prometheus_rule:
+  # file: ./services/monitoring/prometheus/rules/alerts.yml
   promtail_config:
-    file: ./services/monitoring/promtail/promtail-config.yaml
-  loki_config:
-    file: ./services/monitoring/loki/local-config.yaml
-  # grafana_provisioning_1:
-  # file: ./services/monitoring/grafana/provisioning/file
-  grafana_dashboards:
-    file: ./services/monitoring/grafana/dashboards/main.json
-  # alertmanager_config:
-  # file: ./services/monitoring/alertmanager/alertmanager.yml
+    file: ./services/monitoring/promtail/promtail.yaml
 
   nginx_conf:
     file: ./services/nginx/nginx.conf
