@@ -330,14 +330,14 @@ services:
       - source: loki_config
         target: /etc/loki/local-config.yaml
     volumes:
-      - loki_data:/loki
+      - loki_data:/tmp/loki
     networks:
       - etl_network
     ports:
       - "3100:3100"
     deploy:
       mode: replicated
-      replicas: 1
+      replicas: 1 # Use 1 for simple setup, 2+ for HA
       placement:
         constraints:
           - node.role == worker

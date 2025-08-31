@@ -1,36 +1,29 @@
+# This is a complete configuration to deploy Loki backed by the filesystem.
+# The index will be shipped to the storage via tsdb-shipper.
+
 auth_enabled: false
 
 server:
   http_listen_port: 3100
 
 common:
-  path_prefix: /loki
-
-ingester:
-  lifecycler:
-    address: 127.0.0.1
-    ring:
-      kvstore:
-        store: inmemory
-    final_sleep: 0s
-  chunk_idle_period: 5m
-  chunk_retain_period: 30s
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+  replication_factor: 1
+  path_prefix: /tmp/loki
 
 schema_config:
   configs:
-    - from: 2020-01-01
-      store: boltdb-shipper
-      object_store: filesystem
-      schema: v11
-      index:
-        prefix: index_
-        period: 24h
+  - from: 2020-05-15
+    store: tsdb
+    object_store: filesystem
+    schema: v13
+    index:
+      prefix: index_
+      period: 24h
 
-limits_config:
-  reject_old_samples: true
-  retention_period: 168h
-  allow_structured_metadata: false
-
-table_manager:
-  retention_deletes_enabled: true
-  retention_period: 168h
+storage_config:
+  filesystem:
+    directory: /tmp/loki/chunks
