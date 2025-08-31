@@ -55,7 +55,6 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
           - node.hostname == worker2
       # resources:
       #   limits:
@@ -115,7 +114,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == worker2
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -198,7 +197,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == worker2
       # resources:
       #   limits:
       #     cpus: "1"
@@ -367,7 +366,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == worker1
       # resources:
       #   limits:
       #     cpus: "0.25"
@@ -411,7 +410,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == worker2
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -739,6 +738,7 @@ volumes:
     driver: local
     name: frontend_data
 
+  # worker2
   keycloak_themes:
     driver: local
     name: keycloak_themes
@@ -746,6 +746,7 @@ volumes:
   prometheus_data:
     driver: local
     name: prometheus_data
+  # worker2
   grafana_data:
     driver: local
     name: grafana_data
