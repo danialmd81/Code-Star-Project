@@ -326,7 +326,7 @@ services:
     configs:
       - source: loki_config
         target: /etc/loki/local-config.yaml
-    user: "472:472" # Add this line to specify Loki user
+    user: "root:root" # Add this line to specify Loki user
     volumes:
       - loki_data:/home/loki
     networks:
