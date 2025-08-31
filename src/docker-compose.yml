@@ -337,7 +337,7 @@ services:
         target: /etc/loki/local-config.yaml
     # user: "root:root"
     volumes:
-      - loki_data:/home/loki
+      - loki_data:/loki
     networks:
       - etl_network
     # ports:
@@ -350,7 +350,7 @@ services:
         tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
-      replicas: 2 # Use 1 for simple setup, 2+ for HA
+      replicas: 2.
       placement:
         constraints:
           - node.role == manager
@@ -841,21 +841,21 @@ volumes:
     name: replica_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=master-1,rw
       device: ":/srv/docker/volumes/replica_data"
   pgadmin_data:
     driver: local
     name: pgadmin_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=master-1,rw
       device: ":/srv/docker/volumes/pgadmin_data"
   backup_data:
     driver: local
     name: backup_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=worker1,rw
       device: ":/srv/docker/volumes/backup"
 
   keycloak_themes:
@@ -877,21 +877,21 @@ volumes:
     name: grafana_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=master-1,rw
       device: ":/srv/docker/volumes/grafana_data"
   loki_data:
     driver: local
     name: loki_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=worker1,rw
       device: ":/srv/docker/volumes/loki_data"
   alertmanager_data:
     driver: local
     name: alertmanager_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=worker1,rw
       device: ":/srv/docker/volumes/alertmanager_data"
 
   # master-2
@@ -904,7 +904,7 @@ volumes:
     name: registry_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=master-1,rw
       device: ":/srv/docker/volumes/registry_data"
 
   spark_data:
@@ -919,7 +919,7 @@ volumes:
     name: spark_worker_data
     driver_opts:
       type: nfs
-      o: addr=master-2,rw
+      o: addr=worker1,rw
       device: ":/srv/docker/volumes/spark_worker_data"
   spark_history_data:
     driver: local
