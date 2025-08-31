@@ -410,7 +410,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == worker2
+          - node.hostname == worker3
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -746,7 +746,7 @@ volumes:
   prometheus_data:
     driver: local
     name: prometheus_data
-  # worker2
+  # worker3
   grafana_data:
     driver: local
     name: grafana_data
