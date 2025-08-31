@@ -237,7 +237,7 @@ services:
 
   cadvisor:
     image: bitnami/cadvisor:0.53.0
-
+    user: "root:root"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
@@ -245,8 +245,6 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    # environment:
-    # - CADVISOR_HEALTHCHECK_URL=http://localhost:8080/healthz
     command:
       - --docker_only=true
       - --housekeeping_interval=10s
@@ -392,20 +390,6 @@ services:
     depends_on:
       - prometheus
       - loki
-    # healthcheck:
-    #   test:
-    #     [
-    #       "CMD",
-    #       "wget",
-    #       "-q",
-    #       "--tries=1",
-    #       "--spider",
-    #       "http://localhost:3000/api/health",
-    #     ]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 30s
     deploy:
       mode: replicated
       replicas: 1
@@ -434,20 +418,6 @@ services:
     # - "9093:9093"
     depends_on:
       - prometheus
-    # healthcheck:
-    #   test:
-    #     [
-    #       "CMD",
-    #       "wget",
-    #       "-q",
-    #       "--tries=1",
-    #       "--spider",
-    #       "http://localhost:9093/-/healthy",
-    #     ]
-    #   interval: 30s
-    #   timeout: 10s
-    #   retries: 3
-    #   start_period: 30s
     deploy:
       mode: replicated
       replicas: 1
@@ -688,7 +658,6 @@ services:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
     volumes:
-      # TODO #21 find a way for binding ./data in docker swarm cluster
       - /home/danial/spark-logs:/spark-logs
     networks:
       - etl_network
@@ -730,7 +699,6 @@ volumes:
   pgadmin_data:
     driver: local
     name: pgadmin_data
-  # TODO
   # worker3
   # backup
   # /home/danial/backups
@@ -756,7 +724,6 @@ volumes:
     driver: local
     name: loki_data
 
-  # TODO
   # master-2
   # certbot
   # /home/danial/dockerize.ir
@@ -773,7 +740,6 @@ volumes:
   spark_worker_data:
     driver: local
     name: spark_worker_data
-  # TODO
   # worker3
   # spark-history-server
   # /home/danial/spark-logs:/spark-logs

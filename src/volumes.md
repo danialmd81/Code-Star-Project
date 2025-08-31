@@ -13,9 +13,9 @@ This document details the volume configurations used in our Docker Swarm cluster
 | keycloak_themes | local | worker2 | keycloak | Custom Keycloak themes | Active |
 | grafana_data | local | worker3 | grafana | Grafana dashboards and data | Active |
 | registry_data | local | worker3 | registry | Docker Registry storage | Active |
-| backup_data | bind | worker3 | backup | Database backups storage | TODO |
-| spark_history_data | bind | worker3 | spark-history-server | Spark job history logs | TODO |
-| certbot_data | bind | master-2 | certbot | SSL certificates and verification | TODO |
+| backup_data | **bind** | worker3 | backup | Database backups storage | TODO |
+| spark_history_data | **bind** | worker3 | spark-history-server | Spark job history logs | TODO |
+| certbot_data | **bind** | master-2 | certbot | SSL certificates and verification | TODO |
 | frontend_data | local | Any | frontend | Frontend static files | Active |
 | prometheus_data | local | Any | prometheus | Prometheus TSDB storage | Active |
 | spark_data | local | Any | spark-master | Spark master data | Active |
