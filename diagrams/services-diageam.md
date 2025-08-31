@@ -134,25 +134,41 @@ graph TD
 
 ```mermaid
 graph TD
-  Nodes((Nodes)) -->|Host Metrics| NodeExporter[Node Exporter]
-  Nodes -->|Container Metrics| cAdvisor[cAdvisor]
-  
-  AllServices((All Services)) -->|Metrics| OpenTelemetry
-  AllServices((All Services)) -->|Logs| Promtail
+%% Monitoring & Observability
+otelcollector[OpenTelemetry Collector]
+prometheus[Prometheus]
+loki[Loki]
+promtail[Promtail]
+grafana[Grafana]
+alertmanager[Alertmanager]
+cadvisor[cAdvisor]
+nodeexporter[Node Exporter]
+nginxexporter[Nginx Exporter]
+postgresexporter[Postgres Exporter]
+frontend[Frontend]
+backend[Backend]
+cluster[Cluster]
 
-  NodeExporter -->|Metrics| OpenTelemetry
 
-  cAdvisor -->|Metrics| OpenTelemetry
+%% Monitoring Targets from config.yaml
+otelcollector -->|Receives Metrics| prometheus
+cluster -->|Receives Logs| promtail
 
-  Promtail -->|Push Logs| Loki
+promtail -->|Pushes Logs| loki
+loki -->|Data Source| grafana
+prometheus -->|Data Source| grafana
+grafana -->|Alerts| alertmanager
 
-  OpenTelemetry -->|Metrics| Prometheus
+%% Connections to Monitoring
+frontend --> |OTEL| otelcollector
+backend --> |OTEL| otelcollector
+nodeexporter -->|prometheus receiver| otelcollector
+nginxexporter -->|prometheus receiver| otelcollector
+postgresexporter -->|prometheus receiver| otelcollector
+cadvisor -->|prometheus receiver| otelcollector
 
-  Loki -->|Data Source| Grafana
-
-  Prometheus -->|Data Source| Grafana
-
-  Grafana -->|Alerts| AlertManager[Alertmanager]
+%% Alerting
+alertmanager -->|Sends Alerts| user[User]
 ```
 
 **Explanation:**  

@@ -84,6 +84,21 @@ services:
         constraints:
           - node.hostname == master-1
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres_exporter:exporterpass@database:5432/postgres?sslmode=disable"
+    # ports:
+    #   - "9187:9187"
+    networks:
+      - etl_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+
   pgadmin:
     image: dpage/pgadmin4:8.5
     env_file:
@@ -237,6 +252,8 @@ services:
       - --housekeeping_interval=10s
     networks:
       - etl_network
+    # ports:
+    # - "8080:8080"
     deploy:
       mode: global
       placement:
@@ -343,7 +360,7 @@ services:
     networks:
       - etl_network
     # ports:
-    # - "9080:9080" # Promtail ready endpoint (optional, for health checks)
+    # - "9080:9080"
     depends_on:
       - loki
     deploy:
@@ -365,7 +382,7 @@ services:
     # configs:
     # - source: grafana_provisioning_1
     # target: /etc/grafana/provisioning/file
-    # - source: grafana_dashboards_1
+    # - source: grafana_dashboards
     # target: /var/lib/grafana/dashboards/file.json
     volumes:
       - grafana_data:/var/lib/grafana
@@ -509,8 +526,11 @@ services:
     image: nginx/nginx-prometheus-exporter:1.4
     depends_on:
       - nginx
-    ports:
-      - "9113:9113"
+    command:
+      - -nginx.scrape-uri=http://nginx:9113/stub_status
+      - -web.listen-address=:9113
+    # ports:
+    # - "9113:9113"
     networks:
       - etl_network
     deploy:
@@ -563,6 +583,8 @@ services:
         target: /etc/ssl/private/privkey.pem
       - source: registry-auth
         target: /etc/registry/auth/admin
+    ports:
+      - "5000:5000"
     volumes:
       - registry_data:/var/lib/registry
     networks:
@@ -573,8 +595,7 @@ services:
       placement:
         constraints:
           - node.hostname == worker3
-    ports:
-      - "5000:5000"
+
   # -----------------------------------------------
   # Spark
   # -----------------------------------------------
@@ -789,14 +810,16 @@ configs:
     file: ./services/monitoring/otel-collector/config.yaml
   prometheus_config:
     file: ./services/monitoring/prometheus/prometheus.yml
+  # prometheus_rules_recording:
+  # file: ./services/monitoring/prometheus/rules/recording.yml
   promtail_config:
     file: ./services/monitoring/promtail/promtail-config.yaml
   loki_config:
     file: ./services/monitoring/loki/local-config.yaml
   # grafana_provisioning_1:
   # file: ./services/monitoring/grafana/provisioning/file
-  # grafana_dashboards_1:
-  # file: ./services/monitoring/grafana/dashboards/file.json
+  grafana_dashboards:
+    file: ./services/monitoring/grafana/dashboards/file.json
   # alertmanager_config:
   # file: ./services/monitoring/alertmanager/alertmanager.yml
 

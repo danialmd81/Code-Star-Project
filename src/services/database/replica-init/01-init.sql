@@ -15,3 +15,8 @@ GRANT ALL ON SCHEMA public TO keycloak;
 -- Set up permissions for ETL database
 \c etl_db
 GRANT ALL ON SCHEMA public TO etl_user;
+
+CREATE USER postgres_exporter PASSWORD 'exporterpass';
+GRANT CONNECT ON DATABASE postgres TO postgres_exporter;
+GRANT SELECT ON pg_stat_database TO postgres_exporter;
+-- Add more grants as needed for metrics
