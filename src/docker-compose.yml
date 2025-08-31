@@ -275,9 +275,7 @@ services:
       - etl_network
     ports:
       - "8889:8889" # Prometheus exporter endpoint
-      - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
-      - "13133:13133" # Health check endpoint
     deploy:
       mode: replicated
       replicas: 1
@@ -329,18 +327,19 @@ services:
     configs:
       - source: loki_config
         target: /etc/loki/local-config.yaml
+    user: "472:472" # Add this line to specify Loki user
     volumes:
       - loki_data:/tmp/loki
     networks:
       - etl_network
-    ports:
-      - "3100:3100"
+    # ports:
+    # - "3100:3100"
     deploy:
       mode: replicated
       replicas: 1 # Use 1 for simple setup, 2+ for HA
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == worker1
       # resources:
       #   limits:
       #     cpus: "0.5"
@@ -379,11 +378,11 @@ services:
 
   grafana:
     image: grafana/grafana:11.5
-    # configs:
-    # - source: grafana_provisioning_1
-    # target: /etc/grafana/provisioning/file
-    # - source: grafana_dashboards
-    # target: /var/lib/grafana/dashboards/file.json
+    configs:
+      - source: grafana_dashboards
+        target: /var/lib/grafana/dashboards/main.json
+      # - source: grafana_provisioning_1
+      # target: /etc/grafana/provisioning/file
     volumes:
       - grafana_data:/var/lib/grafana
     networks:
@@ -750,6 +749,7 @@ volumes:
   grafana_data:
     driver: local
     name: grafana_data
+  # worker1
   loki_data:
     driver: local
     name: loki_data

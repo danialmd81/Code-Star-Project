@@ -45,17 +45,24 @@ graph TD
 
 ```mermaid
 graph TD
-  User((User)) -->|1.Login| Frontend[Frontend]
-  Frontend -->|2.OIDC Auth| Keycloak[Keycloak]
-  Keycloak -->|3.Redirect| Frontend
-  Frontend -->|4.API Requests| Backend[Backend]
-  Backend -->|5.OIDC Auth| Keycloak
-  Backend -->|6.Give Access| Frontend
+  user((User))
+  admin((Admin))
+  frontend[Frontend] 
+  backend[Backend]
+  keycloak[Keycloak]
+  opentelemetry[OpenTelemetry]
+  database[Database HA Proxy]
 
-  Grafana[Grafana] -->|OIDC Auth| Keycloak
-  Keycloak -->|User Data| PostgreSQL[PostgreSQL]
-  Keycloak -->|Metrics & Logs| OpenTelemetry[OpenTelemetry]
-  Keycloak -.->|Admin Portal| Admin[Admin]
+  user -->|1.Login| frontend
+  frontend -->|2.OIDC Auth| keycloak
+  keycloak -->|3.Redirect| frontend
+  frontend -->|4.API Requests| backend
+  backend -->|5.OIDC Auth| keycloak
+  backend -->|6.Give Access| frontend
+
+  keycloak -->|User Data| database
+  keycloak -->|Metrics & Logs| opentelemetry
+  keycloak -.->|Admin Portal| admin
 ```
 
 **Explanation:**  
@@ -117,10 +124,22 @@ graph TD
 
 ```mermaid
 graph TD
-  User -->|HTTPS Request| Nginx[Nginx]
-  Nginx -->|Proxy| Frontend
-  Nginx -->|Proxy| Keycloak
-  Nginx -->|Proxy| Backend
+  user((User))
+  nginx[Nginx]
+  frontend[Frontend]
+  keycloak[Keycloak]
+  backend[Backend]
+  database[Database HA Proxy]
+  monitoring[Observability Stack]
+  registry[Container Registry]
+
+  user -->|HTTPS Request| nginx
+  nginx -->|Proxy| frontend
+  nginx -->|Proxy| backend
+  nginx -->|Proxy| keycloak
+  nginx -->|Proxy| database
+  nginx -->|Proxy| monitoring
+  nginx -->|Proxy| registry
 ```
 
 **Explanation:**  
