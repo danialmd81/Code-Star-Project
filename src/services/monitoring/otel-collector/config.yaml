@@ -17,15 +17,15 @@ receivers:
         - job_name: "cadvisor"
           static_configs:
             - targets: ["cadvisor:8080"]
-        - job_name: "backend"
-          static_configs:
-            - targets: ["backend:8000"] # Ensure port matches backend's metrics exposition port and that /metrics is exposed
+        # - job_name: "backend"
+        #   static_configs:
+        #     - targets: ["backend:8000"] # Ensure port matches backend's metrics exposition port and that /metrics is exposed
         - job_name: "database"
           static_configs:
             - targets: ["database:9187"] # Use postgres_exporter for metrics
-        - job_name: "frontend"
-          static_configs:
-            - targets: ["frontend:8080"] # Adjust port/path as needed
+        # - job_name: "frontend"
+        #   static_configs:
+        #     - targets: ["frontend:8080"] # Adjust port/path as needed
         - job_name: "keycloak"
           static_configs:
             - targets: ["keycloak:8080"] # Keycloak Prometheus metrics
@@ -35,9 +35,9 @@ receivers:
         - job_name: "spark-worker"
           static_configs:
             - targets: ["spark-worker:8081"] # Spark worker metrics
-        - job_name: "nginx"
-          static_configs:
-            - targets: ["nginx-exporter:9113"] # Use nginx-prometheus-exporter
+        # - job_name: "nginx"
+        #   static_configs:
+        #     - targets: ["nginx-exporter:9113"] # Use nginx-prometheus-exporter
 
 processors:
   batch:

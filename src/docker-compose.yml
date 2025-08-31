@@ -460,8 +460,8 @@ services:
         target: /etc/nginx/nginx.conf
       - source: database_conf
         target: /etc/nginx/conf.d/database.conf
-      - source: grafana_conf
-        target: /etc/nginx/conf.d/grafana.conf
+      - source: monitoring_conf
+        target: /etc/nginx/conf.d/monitoring.conf
       - source: keycloak.conf
         target: /etc/nginx/conf.d/keycloak.conf
       - source: registry_conf
@@ -489,6 +489,30 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == master-2
+      # restart_policy:
+      #   condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "0.25"
+      #     memory: 256M
+      #   reservations:
+      #     cpus: "0.1"
+      #     memory: 128M
+
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.4
+    depends_on:
+      - nginx
+    ports:
+      - "9113:9113"
+    networks:
+      - etl_network
     deploy:
       mode: replicated
       replicas: 1
@@ -780,8 +804,8 @@ configs:
     file: ./services/nginx/nginx.conf
   database_conf:
     file: ./services/nginx/conf.d/database.conf
-  grafana_conf:
-    file: ./services/nginx/conf.d/grafana.conf
+  monitoring_conf:
+    file: ./services/nginx/conf.d/monitoring.conf
   keycloak.conf:
     file: ./services/nginx/conf.d/keycloak.conf
   registry_conf:
