@@ -1,3 +1,4 @@
+# Only one datasource per organization can be marked as default
 apiVersion: 1
 
 datasources:
@@ -13,7 +14,6 @@ datasources:
     url: http://loki:3100
     jsonData:
       maxLines: 1000
-    isDefault: true
 
   - name: Alertmanager
     type: alertmanager

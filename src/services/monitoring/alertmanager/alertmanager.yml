@@ -2,7 +2,6 @@ global:
   resolve_timeout: 5m
   smtp_smarthost: "smtp.gmail.com:587"
   smtp_from: "codestar@gmail.com"
-  smtp_authentication: "login"
   smtp_auth_username: "danialmobinidh81@gmail.com"
   smtp_auth_password: "qjxc spiu pqph vuwm"
   smtp_require_tls: true
