@@ -86,9 +86,6 @@ services:
     # - "5432:5432"
     networks:
       - etl_network
-    depends_on:
-      - pg-0
-      - pg-1
     logging:
       driver: "json-file"
       options:
@@ -161,8 +158,6 @@ services:
       - /home/danial/backups:/backups
     networks:
       - etl_network
-    depends_on:
-      - database
     logging:
       driver: "json-file"
       options:
@@ -196,8 +191,6 @@ services:
       - start
       - --import-realm
       - --proxy-headers=xforwarded
-    depends_on:
-      - database
     env_file:
       - .env
     environment:
@@ -267,8 +260,6 @@ services:
       - etl_network
     volumes:
       - alertmanager_data:/alertmanager
-    depends_on:
-      - prometheus
     logging:
       driver: "json-file"
       options:
@@ -309,9 +300,6 @@ services:
       - etl_network
     volumes:
       - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
-      - loki
     logging:
       driver: "json-file"
       options:
@@ -413,8 +401,6 @@ services:
       - etl_network
     volumes:
       - prometheus_data:/prometheus
-    depends_on:
-      - otel-collector
     logging:
       driver: "json-file"
       options:
@@ -449,8 +435,6 @@ services:
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    depends_on:
-      - loki
     logging:
       driver: "json-file"
       options:
@@ -476,8 +460,8 @@ services:
     command:
       - --docker_only=true
       - --housekeeping_interval=10s
-    ports:
-      - "8080:8080"
+    # ports:
+    # - "8080:8080"
     networks:
       - etl_network
     volumes:
@@ -541,8 +525,6 @@ services:
   # -----------------------------------------------
   nginx:
     image: nginx:stable-alpine
-    depends_on:
-      - keycloak
     env_file:
       - .env
     configs:
@@ -605,8 +587,6 @@ services:
 
   nginx-exporter:
     image: nginx/nginx-prometheus-exporter:1.4
-    depends_on:
-      - nginx
     command:
       - -nginx.scrape-uri=http://nginx:9113/stub_status
       - -web.listen-address=:9113
@@ -639,8 +619,6 @@ services:
     # Certificate renewal service
   certbot:
     image: certbot/certbot:latest
-    depends_on:
-      - nginx
     env_file:
       - .env
     environment:
@@ -741,8 +719,6 @@ services:
   # Spark worker nodes
   spark-worker:
     image: bitnami/spark:3.5.0
-    depends_on:
-      - spark-master
     env_file:
       - .env
     environment:
