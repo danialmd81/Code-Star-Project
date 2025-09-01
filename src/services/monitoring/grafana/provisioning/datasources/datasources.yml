@@ -20,4 +20,3 @@ datasources:
     url: http://alertmanager:9093
     jsonData:
       implementation: prometheus
-    isDefault: true
