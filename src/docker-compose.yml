@@ -82,10 +82,10 @@ services:
     configs:
       - source: ha_proxy_config
         target: /usr/local/etc/haproxy/haproxy.cfg
-    networks:
-      - etl_network
     # ports:
     # - "5432:5432"
+    networks:
+      - etl_network
     depends_on:
       - pg-0
       - pg-1
@@ -126,13 +126,13 @@ services:
     image: dpage/pgadmin4:8.5
     env_file:
       - .env
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+    # ports:
+    # - "5050:80"
+    # - "5051:443"
     networks:
       - etl_network
-    ports:
-      - "5050:80"
-      - "5051:443"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     logging:
       driver: "json-file"
       options:
@@ -209,8 +209,6 @@ services:
         -XX:+ParallelRefProcEnabled
         -XX:+UseStringDeduplication
         -Djava.net.preferIPv4Stack=true
-    volumes:
-      - keycloak_themes:/opt/keycloak/themes
     configs:
       - source: team1_realm
         target: /opt/keycloak/data/import/team1_realm.json
@@ -223,11 +221,13 @@ services:
         target: /etc/ssl/certs/fullchain.pem
       - source: ssl_key
         target: /etc/ssl/private/privkey.pem
-    # ports:
-    # - "8080:8080"
-    # - "8443:8443"
+        # ports:
+        # - "8080:8080"
+        # - "8443:8443"
     networks:
       - etl_network
+    volumes:
+      - keycloak_themes:/opt/keycloak/themes
     logging:
       driver: "json-file"
       options:
@@ -254,17 +254,20 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.26.0
     command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
-      - "--storage.path=/alertmanager"
+      - /bin/sh
+      - -c
+      - |
+        envsubst < /etc/alertmanager/alertmanager.yml.tmpl > /etc/alertmanager/alertmanager.yml
+        /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
     configs:
       - source: alertmanager_config
-        target: /etc/alertmanager/alertmanager.yml
-    volumes:
-      - alertmanager_data:/alertmanager
-    networks:
-      - etl_network
+        target: /etc/alertmanager/alertmanager.yml.tmpl
     # ports:
     # - "9093:9093"
+    networks:
+      - etl_network
+    volumes:
+      - alertmanager_data:/alertmanager
     depends_on:
       - prometheus
     logging:
@@ -300,12 +303,12 @@ services:
         target: /var/lib/grafana/dashboards/containers.json
       - source: grafana_dashboard_postgres
         target: /var/lib/grafana/dashboards/postgres.json
-    volumes:
-      - grafana_data:/var/lib/grafana
-    networks:
-      - etl_network
     ports:
       - "3000:3000"
+    networks:
+      - etl_network
+    volumes:
+      - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
       - loki
@@ -336,12 +339,12 @@ services:
       - source: loki_config
         target: /etc/loki/local-config.yaml
     # user: "root:root"
-    volumes:
-      - loki_data:/loki
-    networks:
-      - etl_network
     # ports:
     # - "3100:3100"
+    networks:
+      - etl_network
+    volumes:
+      - loki_data:/loki
     logging:
       driver: "json-file"
       options:
@@ -368,11 +371,11 @@ services:
     configs:
       - source: otel_collector_config
         target: /etc/otelcol/config.yaml
-    networks:
-      - etl_network
     ports:
       - "8889:8889" # Prometheus exporter endpoint
       - "4318:4318" # OTLP HTTP
+    networks:
+      - etl_network
     logging:
       driver: "json-file"
       options:
@@ -404,12 +407,12 @@ services:
         target: /etc/prometheus/prometheus.yml
       # - source: prometheus_rule
       # target: /etc/prometheus/rules/main.yml
-    volumes:
-      - prometheus_data:/prometheus
+    # ports:
+    # - "9090:9090"
     networks:
       - etl_network
-    ports:
-      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
     depends_on:
       - otel-collector
     logging:
@@ -438,14 +441,14 @@ services:
     configs:
       - source: promtail_config
         target: /etc/promtail/promtail.yaml
+    # ports:
+    # - "9080:9080"
+    networks:
+      - etl_network
     volumes:
       - /var/log:/var/log:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - etl_network
-    # ports:
-    # - "9080:9080"
     depends_on:
       - loki
     logging:
@@ -470,6 +473,13 @@ services:
   cadvisor:
     image: bitnami/cadvisor:0.53.0
     user: "root:root"
+    command:
+      - --docker_only=true
+      - --housekeeping_interval=10s
+    ports:
+      - "8080:8080"
+    networks:
+      - etl_network
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
@@ -477,13 +487,6 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    command:
-      - --docker_only=true
-      - --housekeeping_interval=10s
-    networks:
-      - etl_network
-    ports:
-      - "8080:8080"
     logging:
       driver: "json-file"
       options:
@@ -675,10 +678,10 @@ services:
         target: /etc/registry/auth/admin
     # ports:
     # - "5000:5000"
-    volumes:
-      - registry_data:/var/lib/registry
     networks:
       - etl_network
+    volumes:
+      - registry_data:/var/lib/registry
     logging:
       driver: "json-file"
       options:
@@ -701,18 +704,18 @@ services:
       - .env
     environment:
       - SPARK_MODE=master
-    # ports:
-    #   - "8080:8080" # Web UI
-    #   - "7077:7077" # Spark master port
     configs:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
       - source: spark_metrics
         target: /opt/bitnami/spark/conf/metrics.properties
-    volumes:
-      - spark_data:/bitnami
+    # ports:
+    #   - "8080:8080" # Web UI
+    #   - "7077:7077" # Spark master port
     networks:
       - etl_network
+    volumes:
+      - spark_data:/bitnami
     logging:
       driver: "json-file"
       options:
@@ -749,10 +752,10 @@ services:
       - SPARK_WORKER_CORES=2
     # ports:
     #   - "8081:8081" # Worker Web UI
-    volumes:
-      - spark_worker_data:/bitnami
     networks:
       - etl_network
+    volumes:
+      - spark_worker_data:/bitnami
     logging:
       driver: "json-file"
       options:
@@ -787,15 +790,15 @@ services:
     environment:
       - SPARK_MODE=master # Using master mode for the history server
       - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
-    ports:
-      - "18080:18080" # History Server UI
     configs:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
-    volumes:
-      - spark_history_data:/spark-logs
+    ports:
+      - "18080:18080" # History Server UI
     networks:
       - etl_network
+    volumes:
+      - spark_history_data:/spark-logs
     logging:
       driver: "json-file"
       options:
@@ -960,7 +963,7 @@ configs:
     file: ./services/keycloak/realm-config/team3-realm.json
 
   alertmanager_config:
-    file: ./services/monitoring/alertmanager/alertmanager.yml
+    file: ./services/monitoring/alertmanager/alertmanager.yml.tmpl
   grafana_dashboards_config:
     file: ./services/monitoring/grafana/provisioning/dashboards/dashboards.yml
   grafana_datasources_config:
