@@ -9,89 +9,84 @@ clients:
     tenant_id: default
 
 scrape_configs:
-  # Docker containers
+  # Docker containers with service discovery
   - job_name: docker
-    pipeline_stages:
-      - docker: {}
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*-json.log
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: "container"
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: "logstream"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_service_name"]
+        target_label: "service"
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_node_id"]
+        target_label: "node"
 
-  # System logs
-  - job_name: system
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: system
-          host: ${HOSTNAME}
-          __path__: /var/log/*log
-
-  # PostgreSQL logs
-  - job_name: postgresql
+  # Service-specific configurations
+  - job_name: database
     pipeline_stages:
       - match:
-          selector: '{job="postgresql"}'
+          selector: '{service=~".*database.*"}'
           stages:
             - regex:
                 expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+): (?P<message>.*)$'
             - labels:
                 level:
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: postgresql
-          host: ${HOSTNAME}
-          __path__: /var/log/postgresql/*.log
 
-  # Nginx logs
-  - job_name: nginx
-    pipeline_stages:
-      - match:
-          selector: '{job="nginx"}'
-          stages:
-            - regex:
-                expression: '^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<timestamp>\d{2}\/\w{3}\/\d{4}:\d{2}:\d{2}:\d{2} [+-]\d{4})\] "(?P<method>\S+) (?P<path>\S+) (?P<protocol>\S+)" (?P<status>\d+) (?P<bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: nginx
-          host: ${HOSTNAME}
-          __path__: /var/log/nginx/*log
-
-  # Keycloak logs
   - job_name: keycloak
     pipeline_stages:
       - match:
-          selector: '{job="keycloak"}'
+          selector: '{service=~".*keycloak.*"}'
           stages:
-            - regex:
-                expression: '(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) (?P<level>\w+)\s+\[(?P<source>[^\]]+)\] (?P<message>.*)'
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: keycloak
-          host: ${HOSTNAME}
-          __path__: /opt/keycloak/standalone/log/*.log
+            - json:
+                expressions:
+                  level: level
+                  logger: logger_name
+            - labels:
+                level:
+                logger:
 
-  # Spark logs
-  - job_name: spark
+  - job_name: monitoring
     pipeline_stages:
       - match:
-          selector: '{job="spark"}'
+          selector: '{service=~".*monitoring.*"}'
           stages:
             - regex:
                 expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: spark
-          host: ${HOSTNAME}
-          __path__: /spark-logs/*.log
+            - labels:
+                level:
+
+  - job_name: nginx
+    pipeline_stages:
+      - match:
+          selector: '{service=~".*nginx.*"}'
+          stages:
+            - regex:
+                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
+            - labels:
+                level:
+
+  - job_name: registry
+    pipeline_stages:
+      - match:
+          selector: '{service=~".*registry.*"}'
+          stages:
+            - regex:
+                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
+            - labels:
+                level:
+
+  - job_name: spark
+    pipeline_stages:
+      - match:
+          selector: '{service=~".*spark.*"}'
+          stages:
+            - regex:
+                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
+            - labels:
+                level:

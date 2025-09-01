@@ -28,6 +28,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "database"
     deploy:
       mode: replicated
       replicas: 1
@@ -62,6 +64,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "database"
     deploy:
       mode: replicated
       replicas: 1
@@ -92,6 +96,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "database"
     deploy:
       replicas: 1
       placement:
@@ -112,6 +118,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "database"
     deploy:
       mode: replicated
       replicas: 1
@@ -142,6 +150,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "database"
     deploy:
       mode: replicated
       replicas: 1
@@ -170,6 +180,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "database"
     deploy:
       mode: replicated
       replicas: 1
@@ -233,6 +245,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "keycloak"
     deploy:
       mode: replicated
       replicas: 1
@@ -272,6 +286,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: replicated
       replicas: 1
@@ -294,12 +310,16 @@ services:
         target: /etc/grafana/provisioning/dashboards/dashboards.yml
       - source: grafana_datasources_config
         target: /etc/grafana/provisioning/datasources/datasources.yml
-      - source: grafana_dashboard_node
-        target: /var/lib/grafana/dashboards/node.json
+      - source: grafana_dashboard_cadvisor
+        target: /var/lib/grafana/dashboards/cadvisor.json
       - source: grafana_dashboard_containers
         target: /var/lib/grafana/dashboards/containers.json
+      - source: grafana_dashboard_node
+        target: /var/lib/grafana/dashboards/node.json
       - source: grafana_dashboard_postgres
         target: /var/lib/grafana/dashboards/postgres.json
+      - source: grafana_dashboard_swarm
+        target: /var/lib/grafana/dashboards/swarm.json
     # ports:
     # - "3000:3000"
     networks:
@@ -312,6 +332,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: replicated
       replicas: 1
@@ -345,6 +367,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: replicated
       replicas: 2
@@ -376,6 +400,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: replicated
       replicas: 1
@@ -413,6 +439,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: replicated
       replicas: 1
@@ -447,6 +475,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: global
       placement:
@@ -483,6 +513,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: global
       placement:
@@ -496,10 +528,6 @@ services:
 
   node-exporter:
     image: prom/node-exporter:v1.6.0
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
     command:
       - "--path.procfs=/host/proc"
       - "--path.sysfs=/host/sys"
@@ -509,12 +537,18 @@ services:
     # - "9100:9100"
     networks:
       - etl_network
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "monitoring"
     deploy:
       mode: global
       placement:
@@ -567,6 +601,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "nginx"
     deploy:
       mode: replicated
       replicas: 1
@@ -598,6 +634,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "nginx"
     deploy:
       mode: replicated
       replicas: 1
@@ -634,6 +672,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "nginx"
     deploy:
       placement:
         constraints:
@@ -664,6 +704,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "registry"
     deploy:
       mode: replicated
       replicas: 1
@@ -680,14 +722,23 @@ services:
       - .env
     environment:
       - SPARK_MODE=master
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=spark-master
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=spark-master,deployment.environment=production
     configs:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
       - source: spark_metrics
         target: /opt/bitnami/spark/conf/metrics.properties
-    # ports:
-    #   - "8080:8080" # Web UI
-    #   - "7077:7077" # Spark master port
+    secrets:
+      - source: ssl_cert
+        target: /opt/bitnami/spark/conf/cert.pem
+      - source: ssl_key
+        target: /opt/bitnami/spark/conf/key.pem
+    ports:
+      - "8080:8080" # Web UI
+      - "8443:8443" # Web SSL
+      - "7077:7077" # Spark master port
     networks:
       - etl_network
     volumes:
@@ -698,6 +749,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "spark"
     deploy:
       mode: replicated
       replicas: 1
@@ -724,8 +777,22 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=2G
       - SPARK_WORKER_CORES=2
-    # ports:
-    #   - "8081:8081" # Worker Web UI
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=spark-worker
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=spark-worker,deployment.environment=production
+    configs:
+      - source: spark_defaults
+        target: /opt/bitnami/spark/conf/spark-defaults.conf
+      - source: spark_metrics
+        target: /opt/bitnami/spark/conf/metrics.properties
+    secrets:
+      - source: ssl_cert
+        target: /opt/bitnami/spark/conf/cert.pem
+      - source: ssl_key
+        target: /opt/bitnami/spark/conf/key.pem
+    ports:
+      - "7080:8080" # Worker Web UI
+      - "7443:8443" # Worker SSL
     networks:
       - etl_network
     volumes:
@@ -736,6 +803,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "spark"
     deploy:
       mode: replicated
       replicas: 2 # Start with 2 workers, adjust based on your needs
@@ -768,7 +837,8 @@ services:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
     ports:
-      - "18080:18080" # History Server UI
+      - "6080:8080" # History Server UI
+      - "6443:8443" # History Server SSL
     networks:
       - etl_network
     volumes:
@@ -779,6 +849,8 @@ services:
         max-size: "10m"
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
+        labels:
+          service: "spark"
     deploy:
       mode: replicated
       replicas: 1
@@ -942,12 +1014,16 @@ configs:
     file: ./services/monitoring/grafana/provisioning/dashboards/dashboards.yml
   grafana_datasources_config:
     file: ./services/monitoring/grafana/provisioning/datasources/datasources.yml
-  grafana_dashboard_node:
-    file: ./services/monitoring/grafana/dashboards/node.json
+  grafana_dashboard_cadvisor:
+    file: ./services/monitoring/grafana/dashboards/cadvisor.json
   grafana_dashboard_containers:
     file: ./services/monitoring/grafana/dashboards/containers.json
+  grafana_dashboard_node:
+    file: ./services/monitoring/grafana/dashboards/node.json
   grafana_dashboard_postgres:
     file: ./services/monitoring/grafana/dashboards/postgres.json
+  grafana_dashboard_swarm:
+    file: ./services/monitoring/grafana/dashboards/swarm.json
   loki_config:
     file: ./services/monitoring/loki/local-config.yaml
   otel_collector_config:
