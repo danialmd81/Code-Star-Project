@@ -123,7 +123,7 @@ services:
           - node.role == worker
 
   pgadmin:
-    image: dpage/pgadmin4:8.5
+    image: dpage/pgadmin4:9.5
     env_file:
       - .env
     # ports:
