@@ -257,7 +257,7 @@ services:
       - /bin/sh
       - -c
       - |
-        envsubst < /etc/alertmanager/alertmanager.yml.tmpl > /etc/alertmanager/alertmanager.yml
+        envsubst < /etc/alertmanager/alertmanager.yml.tmpl > /etc/alertmanager/alertmanager.yml && \
         /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
     configs:
       - source: alertmanager_config
@@ -292,6 +292,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.5
+    user: "root:root"
     configs:
       - source: grafana_dashboards_config
         target: /etc/grafana/provisioning/dashboards/dashboards.yml
@@ -839,7 +840,7 @@ volumes:
       type: nfs
       o: addr=master-2,rw
       device: ":/srv/docker/volumes/database_data"
-  replica_data:
+  ureplica_data:
     driver: local
     name: replica_data
     driver_opts:
