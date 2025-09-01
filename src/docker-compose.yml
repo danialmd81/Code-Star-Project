@@ -840,7 +840,7 @@ volumes:
       type: nfs
       o: addr=master-2,rw
       device: ":/srv/docker/volumes/database_data"
-  ureplica_data:
+  replica_data:
     driver: local
     name: replica_data
     driver_opts:
