@@ -1,0 +1,97 @@
+---
+- name: Install NFS client package
+  apt:
+    name: nfs-common
+    state: present
+    update_cache: yes
+
+- name: Create mount points for master-2 exports
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  with_items:
+    - /srv/docker/volumes/database_data
+    - /srv/docker/volumes/keycloak_themes
+    - /srv/docker/volumes/prometheus_data
+    - /srv/docker/volumes/spark_data
+    - /srv/docker/volumes/spark_history_data
+  failed_when: false
+
+- name: Create mount points for master-1 exports
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  with_items:
+    - /srv/docker/volumes/grafana_data
+    - /srv/docker/volumes/replica_data
+    - /srv/docker/volumes/registry_data
+    - /srv/docker/volumes/pgadmin_data
+  failed_when: false
+
+- name: Create mount points for worker1 exports
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0755"
+  with_items:
+    - /srv/docker/volumes/alertmanager_data
+    - /srv/docker/volumes/backup_data
+    - /srv/docker/volumes/loki_data
+    - /srv/docker/volumes/spark_worker_data
+  failed_when: false
+
+- name: Mount NFS shares from master-2
+  mount:
+    path: "{{ item }}"
+    src: "master-2:{{ item }}"
+    fstype: nfs
+    opts: "rw,sync,hard,intr"
+    state: mounted
+  with_items:
+    - /srv/docker/volumes/database_data
+    - /srv/docker/volumes/keycloak_themes
+    - /srv/docker/volumes/prometheus_data
+    - /srv/docker/volumes/spark_data
+    - /srv/docker/volumes/spark_history_data
+  failed_when: false
+
+- name: Mount NFS shares from master-1
+  mount:
+    path: "{{ item }}"
+    src: "master-1:{{ item }}"
+    fstype: nfs
+    opts: "rw,sync,hard,intr"
+    state: mounted
+  with_items:
+    - /srv/docker/volumes/grafana_data
+    - /srv/docker/volumes/replica_data
+    - /srv/docker/volumes/registry_data
+    - /srv/docker/volumes/pgadmin_data
+  failed_when: false
+
+- name: Mount NFS shares from worker1
+  mount:
+    path: "{{ item }}"
+    src: "worker1:{{ item }}"
+    fstype: nfs
+    opts: "rw,sync,hard,intr"
+    state: mounted
+  with_items:
+    - /srv/docker/volumes/alertmanager_data
+    - /srv/docker/volumes/backup_data
+    - /srv/docker/volumes/loki_data
+    - /srv/docker/volumes/spark_worker_data
+  failed_when: false
+
+# Add entries to /etc/hosts if using hostnames
+- name: Add NFS servers to hosts file
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item]['ansible_host'] }} {{ item }}"
+    state: present
+  loop:
+    - master-1
+    - master-2
+    - worker1

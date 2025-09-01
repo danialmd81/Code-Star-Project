@@ -1,0 +1,27 @@
+---
+- name: Install NFS server package
+  apt:
+    name: nfs-kernel-server
+    state: present
+    update_cache: yes
+
+- name: Create export directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "0755"
+    owner: nobody
+    group: nogroup
+  with_items: "{{ nfs_exports }}"
+
+- name: Configure exports
+  template:
+    src: exports.j2
+    dest: /etc/exports
+  notify: restart nfs
+
+- name: Ensure NFS service is running
+  systemd:
+    name: nfs-kernel-server
+    state: started
+    enabled: yes
