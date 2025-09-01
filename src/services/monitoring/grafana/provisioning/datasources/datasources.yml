@@ -13,6 +13,7 @@ datasources:
     url: http://loki:3100
     jsonData:
       maxLines: 1000
+    isDefault: true
 
   - name: Alertmanager
     type: alertmanager

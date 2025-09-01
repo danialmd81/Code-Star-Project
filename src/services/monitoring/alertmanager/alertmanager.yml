@@ -1,10 +1,10 @@
 global:
   resolve_timeout: 5m
-  smtp_smarthost: "${SMTP_SMARTHOST}"
-  smtp_from: "${SMTP_FROM}"
-  smtp_authentication: "${SMTP_AUTHENTICATION}"
-  smtp_auth_username: "${SMTP_AUTH_USERNAME}"
-  smtp_auth_password: "${SMTP_AUTH_PASSWORD}"
+  smtp_smarthost: "smtp.gmail.com:587"
+  smtp_from: "codestar@gmail.com"
+  smtp_authentication: "login"
+  smtp_auth_username: "danialmobinidh81@gmail.com"
+  smtp_auth_password: "qjxc spiu pqph vuwm"
   smtp_require_tls: true
 
 route:
@@ -22,7 +22,7 @@ route:
 receivers:
   - name: "email-notifications"
     email_configs:
-      - to: "${ALERT_RECIPIENT_EMAIL}"
+      - to: "danialmobinidh81@gmail.com"
         send_resolved: true
         headers:
           subject: '{{ template "email.default.subject" . }}'

@@ -25,3 +25,14 @@
     name: nfs-kernel-server
     state: started
     enabled: yes
+
+# Add entries to /etc/hosts if using hostnames
+- name: Add NFS servers to hosts file
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item]['ansible_host'] }} {{ item }}"
+    state: present
+  loop:
+    - master-1
+    - master-2
+    - worker1
