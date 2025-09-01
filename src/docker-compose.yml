@@ -253,15 +253,14 @@ services:
   # -----------------------------------------------
   alertmanager:
     image: prom/alertmanager:v0.26.0
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        envsubst < /etc/alertmanager/alertmanager.yml.tmpl > /etc/alertmanager/alertmanager.yml && \
-        /bin/alertmanager --config.file=/etc/alertmanager/alertmanager.yml --storage.path=/alertmanager
+    env_file:
+      - .env
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
     configs:
       - source: alertmanager_config
-        target: /etc/alertmanager/alertmanager.yml.tmpl
+        target: /etc/alertmanager/alertmanager.yml
     # ports:
     # - "9093:9093"
     networks:
@@ -339,7 +338,7 @@ services:
     configs:
       - source: loki_config
         target: /etc/loki/local-config.yaml
-    # user: "root:root"
+    user: "root:root"
     # ports:
     # - "3100:3100"
     networks:
@@ -354,7 +353,7 @@ services:
         tag: "{{.Name}}/{{.ID}}"
     deploy:
       mode: replicated
-      replicas: 2.
+      replicas: 2
       placement:
         constraints:
           - node.role == manager
@@ -964,7 +963,7 @@ configs:
     file: ./services/keycloak/realm-config/team3-realm.json
 
   alertmanager_config:
-    file: ./services/monitoring/alertmanager/alertmanager.yml.tmpl
+    file: ./services/monitoring/alertmanager/alertmanager.yml
   grafana_dashboards_config:
     file: ./services/monitoring/grafana/provisioning/dashboards/dashboards.yml
   grafana_datasources_config:
