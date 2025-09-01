@@ -345,7 +345,7 @@ services:
     networks:
       - etl_network
     volumes:
-      - loki_data:/loki
+      - loki_data:/tmp/loki
     logging:
       driver: "json-file"
       options:

@@ -7,7 +7,7 @@ server:
   http_listen_port: 3100
 
 common:
-  path_prefix: /loki # Base path for Loki data
+  path_prefix: /tmp/loki # Base path for Loki data
   replication_factor: 1 # Single instance mode
   ring:
     kvstore:
@@ -25,4 +25,4 @@ schema_config:
 
 storage_config:
   filesystem:
-    directory: /loki/chunks # Local storage path
+    directory: /tmp/loki/chunks # Local storage path
