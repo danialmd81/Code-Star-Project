@@ -121,6 +121,11 @@ services:
 
   pgadmin:
     image: dpage/pgadmin4:9.5
+    secrets:
+      - source: ssl_cert
+        target: /certs/server.cert
+      - source: ssl_key
+        target: /certs/server.key
     env_file:
       - .env
     ports:
