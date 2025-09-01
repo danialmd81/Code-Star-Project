@@ -253,7 +253,7 @@ services:
   # -----------------------------------------------
   alertmanager:
     image: prom/alertmanager:v0.26.0
-    command:
+    entrypoint:
       - /bin/sh
       - -c
       - |
