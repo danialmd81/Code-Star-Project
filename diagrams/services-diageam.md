@@ -154,38 +154,55 @@ graph TD
 ```mermaid
 graph TD
 %% Monitoring & Observability
-otelcollector[OpenTelemetry Collector]
-prometheus[Prometheus]
-loki[Loki]
-promtail[Promtail]
-grafana[Grafana]
-alertmanager[Alertmanager]
 cadvisor[cAdvisor]
 nodeexporter[Node Exporter]
-nginxexporter[Nginx Exporter]
+nginxexporter[NGINX Exporter]
 postgresexporter[Postgres Exporter]
-frontend[Frontend]
-backend[Backend]
+
 cluster[Cluster]
+backend[Backend]
+database[Database]
+frontend[Frontend]
+keycloak[Keycloak]
+monitoring[Monitoring]
+nginx[NGINX]
+registry[Container Registry]
+spark[Spark]
+promtail[Promtail]
 
+otelcollector[OpenTelemetry Collector]
 
-%% Monitoring Targets from config.yaml
-otelcollector -->|Receives Metrics| prometheus
-cluster -->|Receives Logs| promtail
+prometheus[Prometheus]
+loki[Loki]
 
-promtail -->|Pushes Logs| loki
-loki -->|Data Source| grafana
-prometheus -->|Data Source| grafana
-grafana -->|Alerts| alertmanager
+grafana[Grafana]
+alertmanager[Alertmanager]
 
-%% Connections to Monitoring
+%% Log Flow
+cluster -->|Logs| promtail
+backend --> |Logs| promtail
+database --> |Logs| promtail
+frontend -->|Logs| promtail
+keycloak --> |Logs| promtail
+monitoring --> |Logs| promtail
+nginx --> |Logs| promtail
+registry --> |Logs| promtail
+spark --> |Logs| promtail
+promtail -->|Pushes Logs| otelcollector
+otelcollector -->|Send Logs| loki
+
+%% Metric Flow
 frontend --> |OTEL| otelcollector
 backend --> |OTEL| otelcollector
 nodeexporter -->|prometheus receiver| otelcollector
 nginxexporter -->|prometheus receiver| otelcollector
 postgresexporter -->|prometheus receiver| otelcollector
 cadvisor -->|prometheus receiver| otelcollector
+otelcollector -->|Send Metrics| prometheus
 
+loki -->|Data Source| grafana
+prometheus -->|Data Source| grafana
+grafana -->|Alerts| alertmanager
 %% Alerting
 alertmanager -->|Sends Alerts| user[User]
 ```

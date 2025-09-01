@@ -10,50 +10,79 @@ receivers:
     config:
       scrape_configs:
         - job_name: "node-exporter"
-          static_configs:
-            - targets: ["node-exporter:9100"]
+          dns_sd_configs:
+            - names: ["tasks.node-exporter"]
+              type: "A"
+              port: 9100
         - job_name: "cadvisor"
-          static_configs:
-            - targets: ["cadvisor:8080"]
+          dns_sd_configs:
+            - names: ["tasks.cadvisor"]
+              type: "A"
+              port: 8080
         - job_name: "postgres-exporter"
           static_configs:
             - targets: ["postgres-exporter:9187"]
         - job_name: "nginx"
           static_configs:
-            - targets: ["nginx-exporter:9113"] # Use nginx-prometheus-exporter
-        # - job_name: "spark-master"
-        #   static_configs:
-        #     - targets: ["spark-master:8080"] # Spark master metrics
-        # - job_name: "spark-worker"
-        #   static_configs:
-        #     - targets: ["spark-worker:8081"] # Spark worker metrics
+            - targets: ["nginx-exporter:9113"]
+        - job_name: "spark"
+          scrape_interval: 15s
+          dns_sd_configs:
+            - names:
+                [
+                  "tasks.spark-master",
+                  "tasks.spark-worker",
+                  "tasks.spark-history-server",
+                ]
+              type: "A"
+              port: 8080
+          metrics_path: /metrics
 
 processors:
   batch:
     timeout: 10s
-    send_batch_size: 512
+    send_batch_size: 1024
   memory_limiter:
     check_interval: 1s
-    limit_mib: 128
-    spike_limit_mib: 32
+    limit_mib: 512
+    spike_limit_mib: 128
+  attributes:
+    actions:
+      - key: cluster.name
+        value: "production-swarm"
+        action: insert
+  filter/logs:
+    logs:
+      exclude:
+        match_type: regexp
+        body: ["^DEBUG:.*"]
 
 exporters:
   prometheus:
     endpoint: "0.0.0.0:8889"
   debug:
     verbosity: detailed
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    tenant_id: otel-collector
+    labels:
+      attributes:
+        container_name: container_name
+        level: level
+        service.name: service.name
+        cluster.name: cluster.name
 
 service:
   pipelines:
     metrics:
       receivers: [otlp, prometheus]
-      processors: [batch, memory_limiter]
+      processors: [batch, memory_limiter, attributes]
       exporters: [prometheus]
     logs:
       receivers: [otlp]
-      processors: [batch, memory_limiter]
-      exporters: [debug]
+      processors: [batch, memory_limiter, attributes, filter/logs]
+      exporters: [debug, loki]
     traces:
       receivers: [otlp]
-      processors: [batch, memory_limiter]
+      processors: [batch, memory_limiter, attributes]
       exporters: [debug]
