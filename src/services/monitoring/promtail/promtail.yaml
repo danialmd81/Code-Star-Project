@@ -33,12 +33,37 @@ scrape_configs:
       - source_labels:
           ["__meta_docker_container_label_com_docker_swarm_node_id"]
         target_label: "node_name"
+      # # Add a label to set service based on container name patterns
+      # - source_labels: ["__meta_docker_container_name"]
+      #   regex: ".*(pg-0|pg-1|database|postgres-exporter|pgadmin|backup).*"
+      #   target_label: "service"
+      #   replacement: "database"
+      # - source_labels: ["__meta_docker_container_name"]
+      #   regex: ".*(keycloak).*"
+      #   target_label: "service"
+      #   replacement: "keycloak"
+      # - source_labels: ["__meta_docker_container_name"]
+      #   regex: ".*(prometheus|grafana|loki|otel-collector|alertmanager|promtail|cadvisor|node-exporter).*"
+      #   target_label: "service"
+      #   replacement: "monitoring"
+      # - source_labels: ["__meta_docker_container_name"]
+      #   regex: ".*(nginx).*"
+      #   target_label: "service"
+      #   replacement: "nginx"
+      # - source_labels: ["__meta_docker_container_name"]
+      #   regex: ".*(registry).*"
+      #   target_label: "service"
+      #   replacement: "registry"
+      # - source_labels: ["__meta_docker_container_name"]
+      #   regex: ".*(spark).*"
+      #   target_label: "service"
+      #   replacement: "spark"
 
   # Service-specific configurations
   - job_name: database
     pipeline_stages:
       - match:
-          selector: '{service=~".*database.*"}'
+          selector: '{service="database"}'
           stages:
             - regex:
                 expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+): (?P<message>.*)$'
@@ -48,7 +73,7 @@ scrape_configs:
   - job_name: keycloak
     pipeline_stages:
       - match:
-          selector: '{service=~".*keycloak.*"}'
+          selector: '{service="keycloak"}'
           stages:
             - json:
                 expressions:
@@ -61,7 +86,7 @@ scrape_configs:
   - job_name: monitoring
     pipeline_stages:
       - match:
-          selector: '{service=~".*monitoring.*"}'
+          selector: '{service="monitoring"}'
           stages:
             - regex:
                 expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
@@ -71,7 +96,7 @@ scrape_configs:
   - job_name: nginx
     pipeline_stages:
       - match:
-          selector: '{service=~".*nginx.*"}'
+          selector: '{service="nginx"}'
           stages:
             - regex:
                 expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
@@ -81,7 +106,7 @@ scrape_configs:
   - job_name: registry
     pipeline_stages:
       - match:
-          selector: '{service=~".*registry.*"}'
+          selector: '{service="registry"}'
           stages:
             - regex:
                 expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
@@ -91,7 +116,7 @@ scrape_configs:
   - job_name: spark
     pipeline_stages:
       - match:
-          selector: '{service=~".*spark.*"}'
+          selector: '{service="spark"}'
           stages:
             - regex:
                 expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'

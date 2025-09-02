@@ -53,9 +53,11 @@ processors:
         action: insert
   filter/logs:
     logs:
-      exclude:
+      include:
         match_type: regexp
-        body: ["^DEBUG:.*"]
+        resources:
+          - key: severity_text
+            value: INFO|WARN|ERROR|CRITICAL|FATAL
 
 exporters:
   prometheus:
