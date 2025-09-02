@@ -302,16 +302,17 @@ services:
         target: /etc/grafana/provisioning/dashboards/dashboards.yml
       - source: grafana_datasources_config
         target: /etc/grafana/provisioning/datasources/datasources.yml
+
       - source: grafana_dashboard_cadvisor
         target: /var/lib/grafana/dashboards/cadvisor.json
+      - source: grafana_dashboard_docker-swarm
+        target: /var/lib/grafana/dashboards/docker-swarm.json
       # - source: grafana_dashboard_containers
       # target: /var/lib/grafana/dashboards/containers.json
       # - source: grafana_dashboard_node
       # target: /var/lib/grafana/dashboards/node.json
       # - source: grafana_dashboard_postgres
       # target: /var/lib/grafana/dashboards/postgres.json
-      - source: grafana_dashboard_docker-swarm
-        target: /var/lib/grafana/dashboards/docker-swarm.json
     # ports:
     # - "3000:3000"
     networks:

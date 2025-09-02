@@ -93,7 +93,7 @@
 					},
 					"disableTextWrap": false,
 					"editorMode": "builder",
-					"expr": "count(node_uname_info)",
+					"expr": "count by(__name__) (node_uname_info)",
 					"format": "time_series",
 					"fullMetaSearch": false,
 					"includeNullMetadata": true,
@@ -841,8 +841,8 @@
 			"options": {
 				"legend": {
 					"calcs": [],
-					"displayMode": "list",
-					"placement": "bottom",
+					"displayMode": "table",
+					"placement": "right",
 					"showLegend": true
 				},
 				"tooltip": {
@@ -919,8 +919,7 @@
 						"mode": "absolute",
 						"steps": [
 							{
-								"color": "green",
-								"value": null
+								"color": "green"
 							},
 							{
 								"color": "red",
@@ -941,8 +940,8 @@
 			"options": {
 				"legend": {
 					"calcs": [],
-					"displayMode": "list",
-					"placement": "bottom",
+					"displayMode": "table",
+					"placement": "right",
 					"showLegend": true
 				},
 				"tooltip": {
@@ -1034,8 +1033,7 @@
 						"mode": "absolute",
 						"steps": [
 							{
-								"color": "green",
-								"value": null
+								"color": "green"
 							},
 							{
 								"color": "red",
@@ -1134,8 +1132,7 @@
 						"mode": "absolute",
 						"steps": [
 							{
-								"color": "green",
-								"value": null
+								"color": "green"
 							},
 							{
 								"color": "red",
@@ -1245,8 +1242,7 @@
 						"mode": "absolute",
 						"steps": [
 							{
-								"color": "green",
-								"value": null
+								"color": "green"
 							},
 							{
 								"color": "red",
@@ -1355,8 +1351,7 @@
 						"mode": "absolute",
 						"steps": [
 							{
-								"color": "green",
-								"value": null
+								"color": "green"
 							},
 							{
 								"color": "red",
@@ -1377,8 +1372,8 @@
 			"options": {
 				"legend": {
 					"calcs": [],
-					"displayMode": "list",
-					"placement": "bottom",
+					"displayMode": "table",
+					"placement": "right",
 					"showLegend": true
 				},
 				"tooltip": {
@@ -1453,8 +1448,7 @@
 						"mode": "absolute",
 						"steps": [
 							{
-								"color": "green",
-								"value": null
+								"color": "green"
 							},
 							{
 								"color": "red",
@@ -1475,8 +1469,8 @@
 			"options": {
 				"legend": {
 					"calcs": [],
-					"displayMode": "list",
-					"placement": "bottom",
+					"displayMode": "table",
+					"placement": "right",
 					"showLegend": true
 				},
 				"tooltip": {
@@ -1613,13 +1607,13 @@
 		]
 	},
 	"time": {
-		"from": "now-6h",
+		"from": "now-5m",
 		"to": "now"
 	},
 	"timepicker": {},
 	"timezone": "",
 	"title": "Docker Swarm Dashboard",
 	"uid": "ssc2",
-	"version": 7,
+	"version": 12,
 	"weekStart": ""
 }
