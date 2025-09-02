@@ -74,11 +74,14 @@ services:
   # HAProxy for database
   database:
     image: haproxy:alpine
+    entrypoint: ["/bin/sh", "/haproxy-entrypoint.sh"]
     configs:
       - source: ha_proxy_config
         target: /usr/local/etc/haproxy/haproxy.cfg
-    ports:
-      - "5432:5432"
+      - source: haproxy_entrypoint
+        target: /haproxy-entrypoint.sh
+    # ports:
+    # - "5432:5432"
     networks:
       - etl_network
     logging:
@@ -203,8 +206,10 @@ configs:
     file: ./init/01-init.sql
   replica_init_script:
     file: ./replica-init/01-init.sql
-  ha-config:
+  ha_proxy_config:
     file: ./haproxy.cfg
+  haproxy_entrypoint:
+    file: ./haproxy-entrypoint.sh
 
 secrets:
   ssl_cert:

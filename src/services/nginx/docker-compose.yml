@@ -3,6 +3,7 @@ version: "3.8"
 services:
   nginx:
     image: nginx:stable-alpine
+    entrypoint: ["/bin/sh", "/wait-for-keycloak.sh"]
     env_file:
       - ../../.env
     configs:
@@ -16,6 +17,8 @@ services:
         target: /etc/nginx/conf.d/keycloak.conf
       - source: registry_conf
         target: /etc/nginx/conf.d/registry.conf
+      - source: wait_for_keycloak
+        target: /wait-for-keycloak.sh
     secrets:
       - source: ssl_cert
         target: /etc/ssl/certs/fullchain.pem
@@ -139,9 +142,14 @@ configs:
     file: ./conf.d/keycloak.conf
   registry_conf:
     file: ./conf.d/registry.conf
+  wait_for_keycloak:
+    file: ./wait-for-keycloak.sh
 
 secrets:
   ssl_cert:
     file: ../../secrets/fullchain.pem
   ssl_key:
     file: ../../secrets/privkey.pem
+
+  registry-auth:
+    file: ../registry/auth/admin

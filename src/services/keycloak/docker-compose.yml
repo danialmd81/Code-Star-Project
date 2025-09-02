@@ -1,62 +1,68 @@
 version: "3.8"
 
 services:
-keycloak:
-  image: keycloak/keycloak:26.1
-  command:
-    - start
-    - --import-realm
-    - --proxy-headers=xforwarded
-  env_file:
-    - ../../.env
-  environment:
-    # JVM settings
-    JAVA_OPTS_APPEND: >-
-      -Xms1g -Xmx2g
-      -XX:MetaspaceSize=96m
-      -XX:MaxMetaspaceSize=256m
-      -XX:+ParallelRefProcEnabled
-      -XX:+UseStringDeduplication
-      -Djava.net.preferIPv4Stack=true
-  configs:
-    - source: team1_realm
-      target: /opt/keycloak/data/import/team1_realm.json
-    - source: team2_realm
-      target: /opt/keycloak/data/import/team2_realm.json
-    - source: team3_realm
-      target: /opt/keycloak/data/import/team3_realm.json
-  secrets:
-    - source: ssl_cert
-      target: /etc/ssl/certs/fullchain.pem
-    - source: ssl_key
-      target: /etc/ssl/private/privkey.pem
-      ports:
-        - "8080:8080"
-        - "8443:8443"
-  networks:
-    - etl_network
-  volumes:
-    - keycloak_themes:/opt/keycloak/themes
-  logging:
-    driver: "json-file"
-    options:
-      max-size: "10m"
-      max-file: "3"
-      tag: "{{.Name}}/{{.ID}}"
-      labels: "service=keycloak"
-  deploy:
-    mode: replicated
-    replicas: 1
-    placement:
-      constraints:
-        - node.role == worker
-    # resources:
-    #   limits:
-    #     cpus: "1"
-    #     memory: 2G
-    #   reservations:
-    #     cpus: "0.5"
-    #     memory: 1G
+  keycloak:
+    image: keycloak/keycloak:26.1
+    entrypoint:
+      [
+        "/bin/sh",
+        "/wait-for-db.sh",
+        "start",
+        "--import-realm",
+        "--proxy-headers=xforwarded",
+      ]
+    env_file:
+      - ../../.env
+    environment:
+      # JVM settings
+      JAVA_OPTS_APPEND: >-
+        -Xms1g -Xmx2g
+        -XX:MetaspaceSize=96m
+        -XX:MaxMetaspaceSize=256m
+        -XX:+ParallelRefProcEnabled
+        -XX:+UseStringDeduplication
+        -Djava.net.preferIPv4Stack=true
+    configs:
+      - source: team1_realm
+        target: /opt/keycloak/data/import/team1_realm.json
+      - source: team2_realm
+        target: /opt/keycloak/data/import/team2_realm.json
+      - source: team3_realm
+        target: /opt/keycloak/data/import/team3_realm.json
+      - source: wait_for_db
+        target: /wait-for-db.sh
+    secrets:
+      - source: ssl_cert
+        target: /etc/ssl/certs/fullchain.pem
+      - source: ssl_key
+        target: /etc/ssl/private/privkey.pem
+        # ports:
+        # - "8080:8080"
+        # - "8443:8443"
+    networks:
+      - etl_network
+    volumes:
+      - keycloak_themes:/opt/keycloak/themes
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=keycloak"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 2G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 1G
 
 networks:
   etl_network:
@@ -76,6 +82,8 @@ configs:
     file: ./realm-config/team2-realm.json
   team3_realm:
     file: ./realm-config/team3-realm.json
+  wait_for_db:
+    file: ./wait-for-db.sh
 
 secrets:
   ssl_cert:

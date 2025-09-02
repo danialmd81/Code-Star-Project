@@ -81,9 +81,12 @@ services:
   # HAProxy for database
   database:
     image: haproxy:alpine
+    entrypoint: ["/bin/sh", "/haproxy-entrypoint.sh"]
     configs:
       - source: ha_proxy_config
         target: /usr/local/etc/haproxy/haproxy.cfg
+      - source: haproxy_entrypoint
+        target: /haproxy-entrypoint.sh
     # ports:
     # - "5432:5432"
     networks:
@@ -199,10 +202,14 @@ services:
   # -----------------------------------------------
   keycloak:
     image: keycloak/keycloak:26.1
-    command:
-      - start
-      - --import-realm
-      - --proxy-headers=xforwarded
+    entrypoint:
+      [
+        "/bin/sh",
+        "/wait-for-db.sh",
+        "start",
+        "--import-realm",
+        "--proxy-headers=xforwarded",
+      ]
     env_file:
       - .env
     environment:
@@ -221,6 +228,8 @@ services:
         target: /opt/keycloak/data/import/team2_realm.json
       - source: team3_realm
         target: /opt/keycloak/data/import/team3_realm.json
+      - source: wait_for_db
+        target: /wait-for-db.sh
     secrets:
       - source: ssl_cert
         target: /etc/ssl/certs/fullchain.pem
@@ -551,6 +560,7 @@ services:
   # -----------------------------------------------
   nginx:
     image: nginx:stable-alpine
+    entrypoint: ["/bin/sh", "/wait-for-keycloak.sh"]
     env_file:
       - .env
     configs:
@@ -564,6 +574,8 @@ services:
         target: /etc/nginx/conf.d/keycloak.conf
       - source: registry_conf
         target: /etc/nginx/conf.d/registry.conf
+      - source: wait_for_keycloak
+        target: /wait-for-keycloak.sh
     secrets:
       - source: ssl_cert
         target: /etc/ssl/certs/fullchain.pem
@@ -966,6 +978,8 @@ configs:
     file: ./services/database/replica-init/01-init.sql
   ha_proxy_config:
     file: ./services/database/haproxy.cfg
+  haproxy_entrypoint:
+    file: ./services/database/haproxy-entrypoint.sh
 
   etl_project_realm:
     file: ./services/keycloak/realm-config/etl-project-realm.json
@@ -975,6 +989,8 @@ configs:
     file: ./services/keycloak/realm-config/team2-realm.json
   team3_realm:
     file: ./services/keycloak/realm-config/team3-realm.json
+  wait_for_db:
+    file: ./services/keycloak/wait-for-db.sh
 
   alertmanager_config:
     file: ./services/monitoring/alertmanager/alertmanager.yml
@@ -1013,6 +1029,8 @@ configs:
     file: ./services/nginx/conf.d/keycloak.conf
   registry_conf:
     file: ./services/nginx/conf.d/registry.conf
+  wait_for_keycloak:
+    file: ./services/nginx/wait-for-keycloak.sh
 
   spark_defaults:
     file: ./services/spark/conf/spark-defaults.conf
