@@ -304,14 +304,14 @@ services:
         target: /etc/grafana/provisioning/datasources/datasources.yml
       - source: grafana_dashboard_cadvisor
         target: /var/lib/grafana/dashboards/cadvisor.json
-      - source: grafana_dashboard_containers
-        target: /var/lib/grafana/dashboards/containers.json
-      - source: grafana_dashboard_node
-        target: /var/lib/grafana/dashboards/node.json
-      - source: grafana_dashboard_postgres
-        target: /var/lib/grafana/dashboards/postgres.json
-      - source: grafana_dashboard_swarm
-        target: /var/lib/grafana/dashboards/swarm.json
+      # - source: grafana_dashboard_containers
+      # target: /var/lib/grafana/dashboards/containers.json
+      # - source: grafana_dashboard_node
+      # target: /var/lib/grafana/dashboards/node.json
+      # - source: grafana_dashboard_postgres
+      # target: /var/lib/grafana/dashboards/postgres.json
+      - source: grafana_dashboard_docker-swarm
+        target: /var/lib/grafana/dashboards/docker-swarm.json
     # ports:
     # - "3000:3000"
     networks:
@@ -994,12 +994,12 @@ configs:
     file: ./services/monitoring/grafana/provisioning/datasources/datasources.yml
   grafana_dashboard_cadvisor:
     file: ./services/monitoring/grafana/dashboards/cadvisor.json
-  grafana_dashboard_containers:
-    file: ./services/monitoring/grafana/dashboards/containers.json
-  grafana_dashboard_node:
-    file: ./services/monitoring/grafana/dashboards/node.json
-  grafana_dashboard_postgres:
-    file: ./services/monitoring/grafana/dashboards/postgres.json
+  # grafana_dashboard_containers:
+  # file: ./services/monitoring/grafana/dashboards/containers.json
+  # grafana_dashboard_node:
+  # file: ./services/monitoring/grafana/dashboards/node.json
+  # grafana_dashboard_postgres:
+  # file: ./services/monitoring/grafana/dashboards/postgres.json
   grafana_dashboard_docker-swarm:
     file: ./services/monitoring/grafana/dashboards/docker-swarm.json
   loki_config:
