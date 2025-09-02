@@ -38,6 +38,7 @@ services:
 
   pg-1:
     image: bitnami/postgresql-repmgr:15
+    entrypoint: ["/bin/bash", "/replica-wait-for-primary.sh"]
     env_file:
       - ../../.env
     environment:
@@ -46,6 +47,8 @@ services:
     configs:
       - source: replica_init_script
         target: /docker-entrypoint-initdb.d/01-pg-1-init.sql
+      - source: replica_wait_for_primary
+        target: /replica-wait-for-primary.sh
     volumes:
       - replica_data:/bitnami/postgresql
     networks:
@@ -210,6 +213,8 @@ configs:
     file: ./haproxy.cfg
   haproxy_entrypoint:
     file: ./haproxy-entrypoint.sh
+  replica_wait_for_primary:
+    file: ./replica-wait-for-primary.sh
 
 secrets:
   ssl_cert:
