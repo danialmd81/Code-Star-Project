@@ -3,7 +3,6 @@ version: "3.8"
 services:
   pg-0:
     image: bitnami/postgresql-repmgr:15
-    container_name: pg-0
     env_file:
       - ../../.env
     environment:
@@ -15,29 +14,30 @@ services:
     volumes:
       - database_data:/bitnami/postgresql
     networks:
-      - etl-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
+      - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=database"
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1G
-        reservations:
-          cpus: "0.5"
-          memory: 512M
+          - node.role == manager
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 1G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 512M
 
   pg-1:
     image: bitnami/postgresql-repmgr:15
-    container_name: pg-1
     env_file:
       - ../../.env
     environment:
@@ -49,47 +49,97 @@ services:
     volumes:
       - replica_data:/bitnami/postgresql
     networks:
-      - etl-network
+      - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=database"
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
           - node.role == worker
-      resources:
-        limits:
-          cpus: "1"
-          memory: 1G
-        reservations:
-          cpus: "0.5"
-          memory: 512M
+      # resources:
+      #   limits:
+      #     cpus: "1"
+      #     memory: 1G
+      #   reservations:
+      #     cpus: "0.5"
+      #     memory: 512M
 
   # HAProxy for database
   database:
     image: haproxy:alpine
-    container_name: haproxy
     configs:
-      - source: ha-config
+      - source: ha_proxy_config
         target: /usr/local/etc/haproxy/haproxy.cfg
-    networks:
-      - etl-network
     ports:
       - "5432:5432"
-    depends_on:
-      - pg-0
-      - pg-1
+    networks:
+      - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=database"
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == master-1
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres_exporter:exporterpass@database:5432/postgres?sslmode=disable"
+    ports:
+      - "9187:9187"
+    networks:
+      - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=database"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+
+  # can't have both http and https port ready
   pgadmin:
-    image: dpage/pgadmin4:8.5
+    image: dpage/pgadmin4:9.5
+    secrets:
+      - source: ssl_cert
+        target: /certs/server.cert
+      - source: ssl_key
+        target: /certs/server.key
     env_file:
-      - .env
+      - ../../.env
+    ports:
+      - "5050:80"
+      - "5051:443"
+    networks:
+      - etl_network
     volumes:
       - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - etl-network
-    # ports:
-    # - "80:80"
-    # - "443:443"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=database"
     deploy:
       mode: replicated
       replicas: 1
@@ -105,27 +155,44 @@ services:
       #     memory: 256M
 
   backup:
-    image: prodrigestivill/postgres-backup-local
-    container_name: backup
+    image: prodrigestivill/postgres-backup-local:17-alpine
     env_file:
       - ../../.env
     volumes:
       - ./backups:/backups
     networks:
-      - etl-network
-    depends_on:
-      - pg-0
+      - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=database"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
 networks:
-  etl-network:
-    driver: overlay
-    attachable: true
-    name: etl-network
+  etl_network:
+    external: true
 
 volumes:
   database_data:
+    driver: local
     name: database_data
   replica_data:
+    driver: local
     name: replica_data
   pgadmin_data:
     driver: local
@@ -138,3 +205,9 @@ configs:
     file: ./replica-init/01-init.sql
   ha-config:
     file: ./haproxy.cfg
+
+secrets:
+  ssl_cert:
+    file: ../../secrets/fullchain.pem
+  ssl_key:
+    file: ../../secrets/privkey.pem

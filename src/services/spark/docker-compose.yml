@@ -3,23 +3,37 @@ services:
   spark-master:
     image: bitnami/spark:3.5.0
     env_file:
-      - .env
+      - ../../.env
     environment:
       - SPARK_MODE=master
-    # ports:
-    #   - "8080:8080" # Web UI
-    #   - "7077:7077" # Spark master port
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=spark-master
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=spark-master,deployment.environment=production
     configs:
-      - source: spark-defaults
+      - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
-      - source: spark-metrics
+      - source: spark_metrics
         target: /opt/bitnami/spark/conf/metrics.properties
-    volumes:
-      - spark-data:/bitnami
-      # TODO #21 find a way for binding ./data in docker swarm cluster
-      # - ./data:/data
+    secrets:
+      - source: ssl_cert
+        target: /opt/bitnami/spark/conf/cert.pem
+      - source: ssl_key
+        target: /opt/bitnami/spark/conf/key.pem
+    ports:
+      - "8080:8080" # Web UI
+      - "8443:8443" # Web SSL
+      - "7077:7077" # Spark master port
     networks:
-      - etl-network
+      - etl_network
+    volumes:
+      - spark_data:/bitnami
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=spark"
     deploy:
       mode: replicated
       replicas: 1
@@ -39,26 +53,43 @@ services:
   # Spark worker nodes
   spark-worker:
     image: bitnami/spark:3.5.0
-    depends_on:
-      - spark-master
     env_file:
-      - .env
+      - ../../.env
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=2G
       - SPARK_WORKER_CORES=2
-    # ports:
-    #   - "8081:8081" # Worker Web UI
-    volumes:
-      - spark-worker-data:/bitnami
-      # TODO #21 find a way for binding ./data in docker swarm cluster
-      # - ./data:/data
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=spark-worker
+      - OTEL_RESOURCE_ATTRIBUTES=service.name=spark-worker,deployment.environment=production
+    configs:
+      - source: spark_defaults
+        target: /opt/bitnami/spark/conf/spark-defaults.conf
+      - source: spark_metrics
+        target: /opt/bitnami/spark/conf/metrics.properties
+    secrets:
+      - source: ssl_cert
+        target: /opt/bitnami/spark/conf/cert.pem
+      - source: ssl_key
+        target: /opt/bitnami/spark/conf/key.pem
+    ports:
+      - "7080:8080" # Worker Web UI
+      - "7443:8443" # Worker SSL
     networks:
-      - etl-network
+      - etl_network
+    volumes:
+      - spark_worker_data:/bitnami
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=spark"
     deploy:
       mode: replicated
-      replicas: 2 # Start with 2 workers, adjust based on your needs
+      replicas: 1 # Start with 2 workers, adjust based on your needs
       placement:
         constraints:
           - node.role == worker
@@ -80,20 +111,27 @@ services:
     command:
       - /opt/bitnami/spark/sbin/start-history-server.sh
     env_file:
-      - .env
+      - ../../.env
     environment:
       - SPARK_MODE=master # Using master mode for the history server
       - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
-    # ports:
-    #   - "18080:18080" # History Server UI
     configs:
-      - source: spark-defaults
+      - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
-    volumes:
-      # TODO #21 find a way for binding ./data in docker swarm cluster
-      - ~/spark-logs:/spark-logs
+    ports:
+      - "6080:8080" # History Server UI
+      - "6443:8443" # History Server SSL
     networks:
-      - etl-network
+      - etl_network
+    volumes:
+      - spark_history_data:/spark-logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=spark"
     deploy:
       mode: replicated
       replicas: 1
@@ -109,9 +147,8 @@ services:
       #     memory: 128M
 
 networks:
-  etl-network:
-    driver: bridge
-    name: etl-network
+  etl_network:
+    external: true
 
 volumes:
   spark-data:
@@ -120,9 +157,18 @@ volumes:
   spark-worker-data:
     driver: local
     name: spark-worker-data
+  spark_history_data:
+    driver: local
+    name: spark-history-data
 
 configs:
-  spark-defaults:
+  spark_defaults:
     file: ./conf/spark-defaults.conf
-  spark-metrics:
+  spark_metrics:
     file: ./conf/metrics.properties
+
+secrets:
+  ssl_cert:
+    file: ../../secrets/fullchain.pem
+  ssl_key:
+    file: ../../secrets/privkey.pem

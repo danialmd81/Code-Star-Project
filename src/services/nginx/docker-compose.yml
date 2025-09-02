@@ -3,43 +3,49 @@ version: "3.8"
 services:
   nginx:
     image: nginx:stable-alpine
-    # depends_on:
-    # - keycloak
     env_file:
       - ../../.env
     configs:
       - source: nginx_conf
         target: /etc/nginx/nginx.conf
-      # - source: database_conf
-      # target: /etc/nginx/conf.d/database.conf
-      # - source: grafana_conf
-      # target: /etc/nginx/conf.d/grafana.conf
-      # - source: keycloak.conf
-      # target: /etc/nginx/conf.d/keycloak.conf
+      - source: database_conf
+        target: /etc/nginx/conf.d/database.conf
+      - source: monitoring_conf
+        target: /etc/nginx/conf.d/monitoring.conf
+      - source: keycloak.conf
+        target: /etc/nginx/conf.d/keycloak.conf
+      - source: registry_conf
+        target: /etc/nginx/conf.d/registry.conf
     secrets:
-      - ssl_cert
-      - ssl_key
+      - source: ssl_cert
+        target: /etc/ssl/certs/fullchain.pem
+      - source: ssl_key
+        target: /etc/ssl/private/privkey.pem
+      - source: registry-auth
+        target: /etc/registry/auth/admin
     ports:
       - "80:80" # nginx HTTP
       - "443:443" # nginx HTTPS
-      - "3000:3000" # grafana HTTP
-      - "5050:5050" # database HTTP
-      - "5051:5051" # database HTTPS
-      - "8080:8080" # keycloak HTTP
-      - "8443:8443" # keycloak HTTPS
     networks:
-      - etl-network
+      - etl_network
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
       timeout: 10s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=nginx"
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
-          - node.role == worker
+          - node.hostname == master-2
       # restart_policy:
       #   condition: on-failure
       # resources:
@@ -49,52 +55,90 @@ services:
       #   reservations:
       #     cpus: "0.1"
       #     memory: 128M
-    volumes:
-      - ./dockerize.ir:/etc/letsencrypt/live/dockerize.ir:ro
-      - ./certbot/www:/var/www/certbot:ro
 
-  # Certificate renewal service
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.4
+    command:
+      - -nginx.scrape-uri=http://nginx:9113/stub_status
+      - -web.listen-address=:9113
+    ports:
+      - "9113:9113"
+    networks:
+      - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=nginx"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.hostname == master-2
+      # restart_policy:
+      #   condition: on-failure
+      # resources:
+      #   limits:
+      #     cpus: "0.25"
+      #     memory: 256M
+      #   reservations:
+      #     cpus: "0.1"
+      #     memory: 128M
+
+    # Certificate renewal service
   certbot:
     image: certbot/certbot:latest
-    secrets:
-      - ssl_cert
-      - ssl_key
-    depends_on:
-      - nginx
-    volumes:
-      - ./dockerize.ir:/etc/letsencrypt/live/dockerize.ir:rw
-      - ./certbot/www:/var/www/certbot:rw
+    env_file:
+      - ../../.env
     environment:
       - DOMAIN=dockerize.ir
-      - EMAIL=your-email@example.com # Replace with your email
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet && kill -HUP $$(pidof nginx); sleep 12h & wait $${!}; done;'"
+      - EMAIL=danialmobinidh81@gmail.com
+    volumes:
+      - /home/danial/dockerize.ir:/etc/letsencrypt/live/dockerize.ir:rw
+      - /home/danial/certbot/www:/var/www/certbot:rw
     networks:
-      - etl-network
+      - etl_network
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet && kill -HUP $$(pidof nginx); sleep 12h & wait $${!}; done;'"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=nginx"
     deploy:
       placement:
         constraints:
-          - node.role == manager
+          - node.hostname == master-2
 networks:
-  etl-network:
+  etl_network:
     external: true
 
 volumes:
   database_data:
-    external: true
+    driver: local
+    name: database_data
   replica_data:
-    external: true
+    driver: local
+    name: replica_data
   pgadmin_data:
-    external: true
+    driver: local
+    name: pgadmin_data
 
 configs:
   nginx_conf:
     file: ./nginx.conf
-  # database_conf:
-  #   file: ./conf.d/database.conf
-  # grafana_conf:
-  #   file: ./conf.d/grafana.conf
-  # keycloak.conf:
-  #   file: ./conf.d/keycloak.conf
+  database_conf:
+    file: ./conf.d/database.conf
+  monitoring_conf:
+    file: ./conf.d/monitoring.conf
+  keycloak.conf:
+    file: ./conf.d/keycloak.conf
+  registry_conf:
+    file: ./conf.d/registry.conf
 
 secrets:
   ssl_cert:

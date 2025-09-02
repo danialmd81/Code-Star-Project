@@ -786,7 +786,7 @@ services:
         labels: "service=spark"
     deploy:
       mode: replicated
-      replicas: 2 # Start with 2 workers, adjust based on your needs
+      replicas: 1 # Start with 2 workers, adjust based on your needs
       placement:
         constraints:
           - node.role == worker
@@ -956,17 +956,6 @@ volumes:
       o: addr=master-2,rw
       device: ":/srv/docker/volumes/spark_history_data"
 # -----------------------------------------------
-# Secrets
-# -----------------------------------------------
-secrets:
-  ssl_cert:
-    file: ./secrets/fullchain.pem
-  ssl_key:
-    file: ./secrets/privkey.pem
-
-  registry-auth:
-    file: ./services/registry/auth/admin
-# -----------------------------------------------
 # Configs
 # -----------------------------------------------
 configs:
@@ -1028,3 +1017,14 @@ configs:
     file: ./services/spark/conf/spark-defaults.conf
   spark_metrics:
     file: ./services/spark/conf/metrics.properties
+# -----------------------------------------------
+# Secrets
+# -----------------------------------------------
+secrets:
+  ssl_cert:
+    file: ./secrets/fullchain.pem
+  ssl_key:
+    file: ./secrets/privkey.pem
+
+  registry-auth:
+    file: ./services/registry/auth/admin

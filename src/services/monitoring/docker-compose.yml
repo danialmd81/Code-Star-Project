@@ -291,6 +291,7 @@ services:
 
 networks:
   etl_network:
+    external: true
     name: etl_network
 
 volumes:
