@@ -85,7 +85,7 @@ services:
 
   loki:
     image: grafana/loki:3.1.0
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
     configs:
       - source: loki_config
         target: /etc/loki/local-config.yaml
@@ -324,7 +324,7 @@ configs:
   grafana_dashboard_postgres:
     file: ./grafana/dashboards/postgres.json
   grafana_dashboard_swarm:
-    file: ./grafana/dashboards/swarm.json
+    file: ./grafana/dashboards/docker-swarm.json
   loki_config:
     file: ./loki/local-config.yaml
   otel_collector_config:

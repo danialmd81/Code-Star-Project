@@ -1,28 +1,31 @@
 # This is a complete configuration to deploy Loki backed by the filesystem.
 # The index will be shipped to the storage via tsdb-shipper.
 
-auth_enabled: false # Basic setup without authentication
+auth_enabled: false
 
 server:
   http_listen_port: 3100
 
 common:
-  path_prefix: /tmp/loki/${HOSTNAME} # Base path for Loki data
-  replication_factor: 1 # Single instance mode
+  path_prefix: /tmp/loki/${HOSTNAME}
+  replication_factor: 1
   ring:
     kvstore:
-      store: inmemory # For basic setups
+      store: inmemory
 
 schema_config:
   configs:
     - from: 2020-05-15
-      store: tsdb # Using TSDB for better performance
+      store: tsdb
       object_store: filesystem
       schema: v13
       index:
         prefix: index_
-        period: 24h # Index rotation period
+        period: 24h
 
 storage_config:
+  tsdb_shipper:
+    active_index_directory: /tmp/loki/${HOSTNAME}/index
+    cache_location: /tmp/loki/${HOSTNAME}/cache
   filesystem:
-    directory: /tmp/loki/${HOSTNAME}/chunks # Local storage path
+    directory: /tmp/loki/${HOSTNAME}/chunks
