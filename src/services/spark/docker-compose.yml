@@ -6,9 +6,6 @@ services:
       - ../../.env
     environment:
       - SPARK_MODE=master
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=spark-master
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=spark-master,deployment.environment=production
     configs:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
@@ -60,9 +57,6 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=2G
       - SPARK_WORKER_CORES=2
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
-      - OTEL_SERVICE_NAME=spark-worker
-      - OTEL_RESOURCE_ATTRIBUTES=service.name=spark-worker,deployment.environment=production
     configs:
       - source: spark_defaults
         target: /opt/bitnami/spark/conf/spark-defaults.conf
@@ -151,15 +145,15 @@ networks:
     external: true
 
 volumes:
-  spark-data:
+  spark_data:
     driver: local
-    name: spark-data
-  spark-worker-data:
+    name: spark_data
+  spark_worker_data:
     driver: local
-    name: spark-worker-data
+    name: spark_worker_data
   spark_history_data:
     driver: local
-    name: spark-history-data
+    name: spark_history_data
 
 configs:
   spark_defaults:
