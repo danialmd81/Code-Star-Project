@@ -1000,8 +1000,8 @@ configs:
     file: ./services/monitoring/grafana/dashboards/node.json
   grafana_dashboard_postgres:
     file: ./services/monitoring/grafana/dashboards/postgres.json
-  grafana_dashboard_swarm:
-    file: ./services/monitoring/grafana/dashboards/swarm.json
+  grafana_dashboard_docker-swarm:
+    file: ./services/monitoring/grafana/dashboards/docker-swarm.json
   loki_config:
     file: ./services/monitoring/loki/local-config.yaml
   otel_collector_config:
