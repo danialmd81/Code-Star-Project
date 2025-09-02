@@ -5,9 +5,7 @@ positions:
   filename: /tmp/positions.yaml
 
 clients:
-  # - url: http://loki:3100/loki/api/v1/push
-  # tenant_id: default
-  - url: http://otel-collector:4318/v1/logs
+  - url: http://loki:3100/loki/api/v1/push
     tenant_id: promtail
     bearer_token: promtail-token
     batchwait: 1s
@@ -16,7 +14,6 @@ clients:
     timeout: 10s
 
 scrape_configs:
-  # Docker containers with service discovery
   - job_name: container_logs
     docker_sd_configs:
       - host: unix:///var/run/docker.sock
@@ -61,64 +58,91 @@ scrape_configs:
 
   # Service-specific configurations
   - job_name: database
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_service_name"]
+        regex: "database"
+        action: keep
     pipeline_stages:
-      - match:
-          selector: '{service="database"}'
-          stages:
-            - regex:
-                expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+): (?P<message>.*)$'
-            - labels:
-                level:
+      - json:
+          expressions:
+            level: level
+            logger: logger_name
 
   - job_name: keycloak
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_service_name"]
+        regex: "keycloak"
+        action: keep
     pipeline_stages:
-      - match:
-          selector: '{service="keycloak"}'
-          stages:
-            - json:
-                expressions:
-                  level: level
-                  logger: logger_name
-            - labels:
-                level:
-                logger:
+      - json:
+          expressions:
+            level: level
+            logger: logger_name
 
   - job_name: monitoring
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_service_name"]
+        regex: "prometheus|grafana|loki|otel-collector|alertmanager|promtail|cadvisor|node-exporter"
+        action: keep
     pipeline_stages:
-      - match:
-          selector: '{service="monitoring"}'
-          stages:
-            - regex:
-                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
-            - labels:
-                level:
+      - json:
+          expressions:
+            level: level
+            logger: logger_name
 
   - job_name: nginx
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_service_name"]
+        regex: "nginx"
+        action: keep
     pipeline_stages:
-      - match:
-          selector: '{service="nginx"}'
-          stages:
-            - regex:
-                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
-            - labels:
-                level:
+      - json:
+          expressions:
+            level: level
+            logger: logger_name
 
   - job_name: registry
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_service_name"]
+        regex: "registry"
+        action: keep
     pipeline_stages:
-      - match:
-          selector: '{service="registry"}'
-          stages:
-            - regex:
-                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
-            - labels:
-                level:
+      - json:
+          expressions:
+            level: level
+            logger: logger_name
 
   - job_name: spark
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels:
+          ["__meta_docker_container_label_com_docker_swarm_service_name"]
+        regex: "spark"
+        action: keep
     pipeline_stages:
-      - match:
-          selector: '{service="spark"}'
-          stages:
-            - regex:
-                expression: '(?P<timestamp>\d{2}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<level>\w+) (?P<message>.*)'
-            - labels:
-                level:
+      - json:
+          expressions:
+            level: level
+            logger: logger_name

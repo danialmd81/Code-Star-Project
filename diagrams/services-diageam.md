@@ -180,16 +180,15 @@ alertmanager[Alertmanager]
 
 %% Log Flow
 cluster -->|Logs| promtail
-backend --> |Logs| promtail
 database --> |Logs| promtail
-frontend -->|Logs| promtail
 keycloak --> |Logs| promtail
 monitoring --> |Logs| promtail
 nginx --> |Logs| promtail
 registry --> |Logs| promtail
 spark --> |Logs| promtail
-promtail -->|Pushes Logs| otelcollector
-otelcollector -->|Send Logs| loki
+frontend -->|Logs| promtail
+backend --> |Logs| promtail
+promtail -->|Pushes Logs| loki
 
 %% Metric Flow
 frontend --> |OTEL| otelcollector

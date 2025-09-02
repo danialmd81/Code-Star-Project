@@ -55,8 +55,8 @@ processors:
     logs:
       include:
         match_type: regexp
-        resources:
-          - key: severity_text
+        record_attributes:
+          - key: severity
             value: INFO|WARN|ERROR|CRITICAL|FATAL
 
 exporters:
@@ -64,15 +64,8 @@ exporters:
     endpoint: "0.0.0.0:8889"
   debug:
     verbosity: detailed
-  loki:
+  otlphttp:
     endpoint: http://loki:3100/loki/api/v1/push
-    tenant_id: otel-collector
-    labels:
-      attributes:
-        container_name: container_name
-        level: level
-        service.name: service.name
-        cluster.name: cluster.name
 
 service:
   pipelines:
@@ -83,7 +76,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [batch, memory_limiter, attributes, filter/logs]
-      exporters: [debug, loki]
+      exporters: [debug, otlphttp]
     traces:
       receivers: [otlp]
       processors: [batch, memory_limiter, attributes]

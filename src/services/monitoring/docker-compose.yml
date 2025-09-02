@@ -1,57 +1,121 @@
 version: "3.8"
 
 services:
-  node-exporter:
-    image: prom/node-exporter:v1.6.0
-    volumes:
-      - /proc:/host/proc:ro
-      - /sys:/host/sys:ro
-      - /:/rootfs:ro
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    env_file:
+      - ../../.env
     command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/rootfs"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
-    # ports:
-    # - "9100:9100"
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    configs:
+      - source: alertmanager_config
+        target: /etc/alertmanager/alertmanager.yml
+    ports:
+      - "9093:9093"
     networks:
-      - etl-network
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - node.platform.os == linux
-      # resources:
-      #   limits:
-      #     memory: 128M
-      #   reservations:
-      #     memory: 64M
-
-  cadvisor:
-    image: bitnami/cadvisor:0.53.0
+      - etl_network
     volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker:/var/lib/docker:ro
-    privileged: true
-    # TODO #23 find a way to use cadvisor without root
-    user: root
-    userns_mode: host
-    # ports:
-    # - "8080:8080"
-    networks:
-      - etl-network
+      - alertmanager_data:/alertmanager
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
     deploy:
-      mode: global
+      mode: replicated
+      replicas: 1
       placement:
         constraints:
-          - node.platform.os == linux
+          - node.role == worker
       # resources:
       #   limits:
+      #     cpus: "0.25"
       #     memory: 256M
       #   reservations:
+      #     cpus: "0.1"
       #     memory: 128M
+
+  grafana:
+    image: grafana/grafana:11.5
+    user: "root:root"
+    configs:
+      - source: grafana_dashboards_config
+        target: /etc/grafana/provisioning/dashboards/dashboards.yml
+      - source: grafana_datasources_config
+        target: /etc/grafana/provisioning/datasources/datasources.yml
+      - source: grafana_dashboard_cadvisor
+        target: /var/lib/grafana/dashboards/cadvisor.json
+      - source: grafana_dashboard_containers
+        target: /var/lib/grafana/dashboards/containers.json
+      - source: grafana_dashboard_node
+        target: /var/lib/grafana/dashboards/node.json
+      - source: grafana_dashboard_postgres
+        target: /var/lib/grafana/dashboards/postgres.json
+      - source: grafana_dashboard_swarm
+        target: /var/lib/grafana/dashboards/swarm.json
+    ports:
+      - "3000:3000"
+    networks:
+      - etl_network
+    volumes:
+      - grafana_data:/var/lib/grafana
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
+
+  loki:
+    image: grafana/loki:3.1.0
+    command: -config.file=/etc/loki/local-config.yaml
+    configs:
+      - source: loki_config
+        target: /etc/loki/local-config.yaml
+    user: "root:root"
+    # ports:
+    # - "3100:3100"
+    networks:
+      - etl_network
+    volumes:
+      - loki_data:/tmp/loki
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
+    deploy:
+      mode: replicated
+      replicas: 2
+      placement:
+        constraints:
+          - node.role == manager
+      # resources:
+      #   limits:
+      #     cpus: "0.5"
+      #     memory: 512M
+      #   reservations:
+      #     cpus: "0.25"
+      #     memory: 256M
 
   otel-collector:
     image: otel/opentelemetry-collector:0.132.0
@@ -59,13 +123,18 @@ services:
     configs:
       - source: otel_collector_config
         target: /etc/otelcol/config.yaml
-    networks:
-      - etl-network
     ports:
       - "8889:8889" # Prometheus exporter endpoint
-      - "4317:4317" # OTLP gRPC
       - "4318:4318" # OTLP HTTP
-      - "13133:13133" # Health check endpoint
+    networks:
+      - etl_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
     deploy:
       mode: replicated
       replicas: 1
@@ -89,14 +158,21 @@ services:
     configs:
       - source: prometheus_config
         target: /etc/prometheus/prometheus.yml
-    volumes:
-      - prometheus-data:/prometheus
+      # - source: prometheus_rule
+      # target: /etc/prometheus/rules/main.yml
+    ports:
+      - "9090:9090"
     networks:
-      - etl-network
-    # ports:
-    # - "9090:9090"
-    depends_on:
-      - otel-collector
+      - etl_network
+    volumes:
+      - prometheus_data:/prometheus
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
     deploy:
       mode: replicated
       replicas: 1
@@ -111,52 +187,32 @@ services:
       #     cpus: "0.5"
       #     memory: 512M
 
-  loki:
-    image: grafana/loki:3.1.0
-    command: -config.file=/etc/loki/local-config.yaml
-    configs:
-      - source: loki_config
-        target: /etc/loki/local-config.yaml
-    volumes:
-      - loki-data:/loki
-    networks:
-      - etl-network
-    # ports:
-    # - "3100:3100"
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      # resources:
-      #   limits:
-      #     cpus: "0.5"
-      #     memory: 512M
-      #   reservations:
-      #     cpus: "0.25"
-      #     memory: 256M
-
   promtail:
     image: grafana/promtail:2.9.3
-    command: -config.file=/etc/promtail/promtail-config.yaml
+    command: -config.file=/etc/promtail/promtail.yaml
     configs:
       - source: promtail_config
-        target: /etc/promtail/promtail-config.yaml
+        target: /etc/promtail/promtail.yaml
+    ports:
+      - "9080:9080"
+    networks:
+      - etl_network
     volumes:
       - /var/log:/var/log:ro
-    networks:
-      - etl-network
-    # ports:
-    # - "9080:9080" # Promtail ready endpoint (optional, for health checks)
-    depends_on:
-      - loki
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
     deploy:
-      mode: replicated
-      replicas: 1
+      mode: global
       placement:
         constraints:
-          - node.role == worker
+          - node.platform.os == linux
       # resources:
       #   limits:
       #     cpus: "0.25"
@@ -165,119 +221,116 @@ services:
       #     cpus: "0.1"
       #     memory: 128M
 
-  grafana:
-    image: grafana/grafana:11.5
-    # configs:
-    # - source: grafana_provisioning_1
-    # target: /etc/grafana/provisioning/file
-    # - source: grafana_dashboards_1
-    # target: /var/lib/grafana/dashboards/file.json
-    volumes:
-      - grafana-data:/var/lib/grafana
-    networks:
-      - etl-network
-    # ports:
-    # - "3000:3000"
-    depends_on:
-      - prometheus
-      - loki
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:3000/api/health",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == worker
-      # resources:
-      #   limits:
-      #     cpus: "0.5"
-      #     memory: 512M
-      #   reservations:
-      #     cpus: "0.25"
-      #     memory: 256M
-
-  alertmanager:
-    image: prom/alertmanager:v0.26.0
+  cadvisor:
+    image: bitnami/cadvisor:0.53.0
+    user: "root:root"
     command:
-      - "--config.file=/etc/alertmanager/alertmanager.yml"
-      - "--storage.path=/alertmanager"
-    # configs:
-    # - source: alertmanager_config
-    # target: /etc/alertmanager/alertmanager.yml
+      - --docker_only=true
+      - --housekeeping_interval=10s
+    ports:
+      - "8080:8080"
     networks:
-      - etl-network
-    # ports:
-    # - "9093:9093"
-    depends_on:
-      - prometheus
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "wget",
-          "-q",
-          "--tries=1",
-          "--spider",
-          "http://localhost:9093/-/healthy",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+      - etl_network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
     deploy:
-      mode: replicated
-      replicas: 1
+      mode: global
       placement:
         constraints:
-          - node.role == worker
+          - node.platform.os == linux
       # resources:
       #   limits:
-      #     cpus: "0.25"
       #     memory: 256M
       #   reservations:
-      #     cpus: "0.1"
       #     memory: 128M
+
+  node-exporter:
+    image: prom/node-exporter:v1.6.0
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    ports:
+      - "9100:9100"
+    networks:
+      - etl_network
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}/{{.ID}}"
+        labels: "service=monitoring"
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          - node.platform.os == linux
+      # resources:
+      #   limits:
+      #     memory: 128M
+      #   reservations:
+      #     memory: 64M
 
 networks:
-  etl-network:
-    name: etl-network
+  etl_network:
+    name: etl_network
 
 volumes:
-  prometheus-data:
+  alertmanager_data:
     driver: local
-    name: prometheus-data
-  grafana-data:
+    name: alertmanager_data
+  grafana_data:
     driver: local
-    name: grafana-data
-  loki-data:
+    name: grafana_data
+  loki_data:
     driver: local
-    name: loki-data
+    name: loki_data
+  prometheus_data:
+    driver: local
+    name: prometheus_data
 
 configs:
+  alertmanager_config:
+    file: ./alertmanager/alertmanager.yml
+  grafana_dashboards_config:
+    file: ./grafana/provisioning/dashboards/dashboards.yml
+  grafana_datasources_config:
+    file: ./grafana/provisioning/datasources/datasources.yml
+  grafana_dashboard_cadvisor:
+    file: ./grafana/dashboards/cadvisor.json
+  grafana_dashboard_containers:
+    file: ./grafana/dashboards/containers.json
+  grafana_dashboard_node:
+    file: ./grafana/dashboards/node.json
+  grafana_dashboard_postgres:
+    file: ./grafana/dashboards/postgres.json
+  grafana_dashboard_swarm:
+    file: ./grafana/dashboards/swarm.json
+  loki_config:
+    file: ./loki/local-config.yaml
   otel_collector_config:
     file: ./otel-collector/config.yaml
   prometheus_config:
     file: ./prometheus/prometheus.yml
+  # prometheus_rule:
+  # file: ./prometheus/rules/alerts.yml
   promtail_config:
-    file: ./promtail/promtail-config.yaml
-  loki_config:
-    file: ./loki/local-config.yaml
-  grafana_provisioning_1:
-    file: ./grafana/provisioning/file
-  grafana_dashboards_1:
-    file: ./grafana/dashboards/file.json
-  alertmanager_config:
-    file: ./alertmanager/alertmanager.yml
+    file: ./promtail/promtail.yaml
