@@ -753,7 +753,7 @@ services:
     ports:
       - "8080:8080" # Web UI
       - "8443:8443" # Web SSL
-      - "7077:7077" # Spark master port
+      # - "7077:7077" # Spark master port
     networks:
       - etl_network
     volumes:
