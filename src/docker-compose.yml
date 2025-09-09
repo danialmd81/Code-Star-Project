@@ -166,6 +166,7 @@ services:
 
   backup:
     image: prodrigestivill/postgres-backup-local:17-alpine
+    user: root
     env_file:
       - .env
     volumes:
@@ -995,7 +996,7 @@ configs:
   init_script:
     file: ./services/database/init/01-init.sql
   replica_init_script:
-    file: ./services/database/replica-init/01-init.sql
+    file: ./services/database/init/01-init.sql
   ha_proxy_config:
     file: ./services/database/haproxy.cfg
   haproxy_entrypoint:

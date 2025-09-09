@@ -208,7 +208,7 @@ configs:
   init_script:
     file: ./init/01-init.sql
   replica_init_script:
-    file: ./replica-init/01-init.sql
+    file: ./init/01-init.sql
   ha_proxy_config:
     file: ./haproxy.cfg
   haproxy_entrypoint:
