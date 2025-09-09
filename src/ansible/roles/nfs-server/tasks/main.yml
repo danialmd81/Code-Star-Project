@@ -10,8 +10,8 @@
     path: "{{ item.path }}"
     state: directory
     mode: "0755"
-    owner: nobody
-    group: nogroup
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
   with_items: "{{ nfs_exports }}"
 
 - name: Configure exports
