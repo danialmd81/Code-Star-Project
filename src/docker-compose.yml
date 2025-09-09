@@ -652,7 +652,7 @@ services:
   certbot:
     image: certbot/dns-cloudflare:latest
     env_file:
-      - ../../.env
+      - .env
     environment:
       - DOMAIN=dani-docker.ir
       - EMAIL=danialmobinidh81@gmail.com

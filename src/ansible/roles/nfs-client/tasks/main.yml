@@ -39,7 +39,7 @@
   with_items:
     - /srv/docker/volumes/alertmanager_data
     - /srv/docker/volumes/backup_data
-    - /srv/docker/volumes/loki_data
+    # - /srv/docker/volumes/loki_data
     - /srv/docker/volumes/spark_worker_data
   failed_when: false
 
