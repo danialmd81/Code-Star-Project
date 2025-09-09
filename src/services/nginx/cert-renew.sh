@@ -13,6 +13,9 @@ docker secret create ssl_cert "$CERT_PATH"
 docker secret create ssl_key "$KEY_PATH"
 
 # Force update services that use the secrets
-docker service update --force project_nginx
-docker service update --force project_keycloak
-docker service update --force project_registry
+docker service update --force etl_nginx
+docker service update --force etl_keycloak
+docker service update --force etl_registry
+docker service update --force etl_spark-master
+docker service update --force etl_spark-worker
+docker service update --force etl_spark-history-server
