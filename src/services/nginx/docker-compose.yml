@@ -93,18 +93,28 @@ services:
 
     # Certificate renewal service
   certbot:
-    image: certbot/certbot:latest
+    image: certbot/dns-cloudflare:latest
     env_file:
       - ../../.env
     environment:
-      - DOMAIN=dockerize.ir
+      - DOMAIN=dani-docker.ir
       - EMAIL=danialmobinidh81@gmail.com
+    secrets:
+      - cloudflare_api_token
     volumes:
-      - /home/danial/dockerize.ir:/etc/letsencrypt/live/dockerize.ir:rw
+      - /home/danial/dani-docker.ir:/etc/letsencrypt/live/dani-docker.ir:rw
       - /home/danial/certbot/www:/var/www/certbot:rw
     networks:
       - etl_network
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet && kill -HUP $$(pidof nginx); sleep 12h & wait $${!}; done;'"
+    entrypoint: >
+      /bin/sh -c '
+        trap exit TERM; 
+        while :; do 
+          certbot renew ----dns-cloudflare --dns-cloudflare-credentials --quiet /cloudflare.ini --quiet &&
+          kill -HUP $$(pidof nginx);
+          sleep 12h & wait $${!}; 
+        done;
+      '
     logging:
       driver: "json-file"
       options:
@@ -116,6 +126,7 @@ services:
       placement:
         constraints:
           - node.hostname == master-2
+
 networks:
   etl_network:
     external: true
@@ -150,6 +161,8 @@ secrets:
     file: ../../secrets/fullchain.pem
   ssl_key:
     file: ../../secrets/privkey.pem
+  cloudflare_api_token:
+    file: ../../secrets/cloudflare.ini
 
   registry-auth:
     file: ../registry/auth/admin
