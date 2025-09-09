@@ -1,29 +1,28 @@
 version: "3.8"
 services:
   spark-master:
-    image: bitnami/spark:3.5.0
-    env_file:
-      - ../../.env
+    image: apache/spark:3.5.0
     environment:
       - SPARK_MODE=master
+      - SPARK_MASTER_PORT=7077
     configs:
       - source: spark_defaults
-        target: /opt/bitnami/spark/conf/spark-defaults.conf
+        target: /opt/spark/conf/spark-defaults.conf
       - source: spark_metrics
-        target: /opt/bitnami/spark/conf/metrics.properties
+        target: /opt/spark/conf/metrics.properties
     secrets:
       - source: ssl_cert
-        target: /opt/bitnami/spark/conf/cert.pem
+        target: /opt/spark/conf/cert.pem
       - source: ssl_key
-        target: /opt/bitnami/spark/conf/key.pem
+        target: /opt/spark/conf/key.pem
     ports:
-      - "8080:8080" # Web UI
-      - "8443:8443" # Web SSL
-      - "7077:7077" # Spark master port
+      - "7077:7077" # Master Port
+      - "8080:8080" # Master Web UI
+      - "8443:8443" # Master SSL
     networks:
       - etl_network
     volumes:
-      - spark_data:/bitnami
+      - spark_data:/opt/spark/data
     logging:
       driver: "json-file"
       options:
@@ -31,27 +30,24 @@ services:
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
         labels: "service=spark"
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     deploy:
-      mode: replicated
-      replicas: 1
       placement:
         constraints:
           - node.role == worker
-      # restart_policy:
-      #   condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "1"
-      #     memory: 1G
-      #   reservations:
-      #     cpus: "0.5"
-      #     memory: 512M
+    # restart_policy:
+    #   condition: on-failure
+    # resources:
+    #   limits:
+    #     cpus: "1"
+    #     memory: 1G
+    #   reservations:
+    #     cpus: "0.5"
+    #     memory: 512M
 
   # Spark worker nodes
   spark-worker:
-    image: bitnami/spark:3.5.0
-    env_file:
-      - ../../.env
+    image: apache/spark:3.5.0
     environment:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark-master:7077
@@ -59,21 +55,21 @@ services:
       - SPARK_WORKER_CORES=2
     configs:
       - source: spark_defaults
-        target: /opt/bitnami/spark/conf/spark-defaults.conf
+        target: /opt/spark/conf/spark-defaults.conf
       - source: spark_metrics
-        target: /opt/bitnami/spark/conf/metrics.properties
+        target: /opt/spark/conf/metrics.properties
     secrets:
       - source: ssl_cert
-        target: /opt/bitnami/spark/conf/cert.pem
+        target: /opt/spark/conf/cert.pem
       - source: ssl_key
-        target: /opt/bitnami/spark/conf/key.pem
+        target: /opt/spark/conf/key.pem
     ports:
       - "7080:8080" # Worker Web UI
       - "7443:8443" # Worker SSL
     networks:
       - etl_network
     volumes:
-      - spark_worker_data:/bitnami
+      - spark_worker_data:/opt/spark/data
     logging:
       driver: "json-file"
       options:
@@ -81,37 +77,39 @@ services:
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
         labels: "service=spark"
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
     deploy:
-      mode: replicated
-      replicas: 1 # Start with 2 workers, adjust based on your needs
       placement:
         constraints:
           - node.role == worker
         preferences:
           - spread: node.id
-      # restart_policy:
-      #   condition: on-failure
-      # resources:
-      #   limits:
-      #     cpus: "1"
-      #     memory: 1G
-      #   reservations:
-      #     cpus: "0.5"
-      #     memory: 512M
+    # restart_policy:
+    #   condition: on-failure
+    # resources:
+    #   limits:
+    #     cpus: "1"
+    #     memory: 1G
+    #   reservations:
+    #     cpus: "0.5"
+    #     memory: 512M
 
   # Spark History Server for job history and logs
   spark-history-server:
-    image: bitnami/spark:3.5.0
-    command:
-      - /opt/bitnami/spark/sbin/start-history-server.sh
-    env_file:
-      - ../../.env
+    image: apache/spark:3.5.0
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
     environment:
       - SPARK_MODE=master # Using master mode for the history server
-      - SPARK_HISTORY_FS_LOG_DIRECTORY=file:///spark-logs
     configs:
       - source: spark_defaults
-        target: /opt/bitnami/spark/conf/spark-defaults.conf
+        target: /opt/spark/conf/spark-defaults.conf
+      - source: spark_metrics
+        target: /opt/spark/conf/metrics.properties
+    secrets:
+      - source: ssl_cert
+        target: /opt/spark/conf/cert.pem
+      - source: ssl_key
+        target: /opt/spark/conf/key.pem
     ports:
       - "6080:8080" # History Server UI
       - "6443:8443" # History Server SSL
