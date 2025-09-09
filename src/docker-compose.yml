@@ -653,6 +653,7 @@ services:
       #     memory: 128M
 
     # Certificate renewal service
+
   certbot:
     image: certbot/dns-cloudflare:latest
     env_file:
@@ -738,6 +739,8 @@ services:
     environment:
       - SPARK_MODE=master
       - SPARK_MASTER_PORT=7077
+      - SPARK_DAEMON_MEMORY=1g # JVM Options to optimize performance
+      - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled
     configs:
       - source: spark_defaults
         target: /opt/spark/conf/spark-defaults.conf
@@ -786,6 +789,8 @@ services:
       - SPARK_MASTER_URL=spark://spark-master:7077
       - SPARK_WORKER_MEMORY=2G
       - SPARK_WORKER_CORES=2
+      - SPARK_DAEMON_MEMORY=1g # JVM Options to optimize performance
+      - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled
     configs:
       - source: spark_defaults
         target: /opt/spark/conf/spark-defaults.conf
@@ -833,6 +838,8 @@ services:
     command: /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
     environment:
       - SPARK_MODE=master # Using master mode for the history server
+      - SPARK_DAEMON_MEMORY=1g
+      - SPARK_DAEMON_JAVA_OPTS=-XX:+UseG1GC -XX:+DisableExplicitGC -XX:+ParallelRefProcEnabled
     configs:
       - source: spark_defaults
         target: /opt/spark/conf/spark-defaults.conf
