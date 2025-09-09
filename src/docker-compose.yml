@@ -169,7 +169,7 @@ services:
     env_file:
       - .env
     volumes:
-      - /home/danial/backups:/backups
+      - backup_data:/backups
     networks:
       - etl_network
     logging:
