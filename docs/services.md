@@ -1,9 +1,5 @@
 # Service Access Reference for Developer Teams
 
-This document provides the essential access information for the core platform services. Use the Nginx addresses for all integrations. For more details, see the referenced directories.
-
----
-
 ## 1. Database (PostgreSQL with HAProxy)
 
 - **Nginx Address:**  
@@ -106,64 +102,11 @@ This document provides the essential access information for the core platform se
 
   ### Observability Stack Diagram
 
-  ```mermaid
-  graph TD
-  %% Monitoring & Observability
-  cadvisor[cAdvisor]
-  nodeexporter[Node Exporter]
-  nginxexporter[NGINX Exporter]
-  postgresexporter[Postgres Exporter]
-
-  cluster[Cluster]
-  backend[Backend]
-  database[Database]
-  frontend[Frontend]
-  keycloak[Keycloak]
-  monitoring[Monitoring]
-  nginx[NGINX]
-  registry[Container Registry]
-  spark[Spark]
-  promtail[Promtail]
-
-  otelcollector[OpenTelemetry Collector]
-
-  prometheus[Prometheus]
-  loki[Loki]
-
-  grafana[Grafana]
-  alertmanager[Alertmanager]
-
-  %% Log Flow
-  cluster -->|Logs| promtail
-  database --> |Logs| promtail
-  keycloak --> |Logs| promtail
-  monitoring --> |Logs| promtail
-  nginx --> |Logs| promtail
-  registry --> |Logs| promtail
-  spark --> |Logs| promtail
-  frontend -->|Logs| promtail
-  backend -->|Logs| promtail
-  promtail -->|Pushes Logs| loki
-
-  %% Metric Flow
-  frontend --> |OTEL| otelcollector
-  backend --> |OTEL| otelcollector
-  nodeexporter -->|prometheus receiver| otelcollector
-  nginxexporter -->|prometheus receiver| otelcollector
-  postgresexporter -->|prometheus receiver| otelcollector
-  cadvisor -->|prometheus receiver| otelcollector
-  otelcollector -->|Send Metrics| prometheus
-
-  loki -->|Data Source| grafana
-  prometheus -->|Data Source| grafana
-  grafana -->|Alerts| alertmanager
-  %% Alerting
-  alertmanager -->|Sends Alerts| user[User]
-  ```
+  ![alt](images/diagram.png)
   
-  - **Default Grafana Credentials:**  
-    - Username: `admin`
-    - Password: `dani`
+- **Default Grafana Credentials:**  
+  - Username: `admin`
+  - Password: `dani`
 
 ---
 
