@@ -574,6 +574,8 @@ services:
         target: /etc/nginx/conf.d/keycloak.conf
       - source: registry_conf
         target: /etc/nginx/conf.d/registry.conf
+      - source: spark_conf
+        target: /etc/nginx/conf.d/spark.conf
       - source: wait_for_keycloak
         target: /wait-for-keycloak.sh
     secrets:
@@ -1055,6 +1057,8 @@ configs:
     file: ./services/nginx/conf.d/keycloak.conf
   registry_conf:
     file: ./services/nginx/conf.d/registry.conf
+  spark_conf:
+    file: ./services/nginx/conf.d/spark.conf
   wait_for_keycloak:
     file: ./services/nginx/wait-for-keycloak.sh
   certbot_renew:
