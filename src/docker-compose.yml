@@ -1069,11 +1069,11 @@ configs:
 # -----------------------------------------------
 secrets:
   ssl_cert:
-    # external: true
-    file: ./secrets/fullchain.pem
+    external: true
+    # file: ./secrets/fullchain.pem
   ssl_key:
-    # external: true
-    file: ./secrets/privkey.pem
+    external: true
+    # file: ./secrets/privkey.pem
 
   cloudflare_api_token:
     file: ./secrets/cloudflare.ini

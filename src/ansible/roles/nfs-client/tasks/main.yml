@@ -16,6 +16,7 @@
     - /srv/docker/volumes/prometheus_data
     - /srv/docker/volumes/spark_data
     - /srv/docker/volumes/spark_history_data
+    - /srv/docker/volumes/certbot_data
   failed_when: false
 
 - name: Create mount points for master-1 exports
@@ -55,6 +56,7 @@
     - /srv/docker/volumes/prometheus_data
     - /srv/docker/volumes/spark_data
     - /srv/docker/volumes/spark_history_data
+    - /srv/docker/volumes/certbot_data
   failed_when: false
 
 - name: Mount NFS shares from master-1
