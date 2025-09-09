@@ -6,6 +6,7 @@ services:
   # -----------------------------------------------
 
   # -----------------------------------------------
+  # TODO add teams' user to pgadmin from ui
   # Database
   # -----------------------------------------------
   pg-0:
@@ -950,7 +951,6 @@ volumes:
 
   # master-2
   # certbot
-  # TODO add to ansible
   certbot_data:
     driver: local
     name: certbot_data
@@ -998,12 +998,10 @@ configs:
   replica_init_script:
     file: ./services/database/init/01-init.sql
   ha_proxy_config:
-    file: ./services/database/haproxy.cfg
+    file: ./services/database/haproxy/haproxy.cfg
   haproxy_entrypoint:
-    file: ./services/database/haproxy-entrypoint.sh
+    file: ./services/database/haproxy/haproxy-entrypoint.sh
 
-  etl_project_realm:
-    file: ./services/keycloak/realm-config/etl-project-realm.json
   team1_realm:
     file: ./services/keycloak/realm-config/team1-realm.json
   team2_realm:
