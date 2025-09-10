@@ -1,25 +1,4 @@
-## 1. **Frontend Service Diagram**
-
-```mermaid
-graph TD
-  User((User)) -->|Upload CSV| Frontend[Frontend]
-  Frontend -->|API Requests| Backend
-  Frontend -->|Auth Request| Keycloak
-  Frontend -->|Metrics & Logs| OpenTelemetry
-  Frontend -.->|Dashboard| Grafana
-```
-
-**Explanation:**  
-
-- The Frontend is the user-facing web UI.
-- Users upload data and interact with the ETL pipeline.
-- Authenticates via Keycloak (SSO).
-- Sends API requests to the Backend.
-- Exposes metrics and logs to the observability stack (OpenTelemetry Collector, Prometheus, Loki, Grafana).
-
----
-
-## 2. **Backend Service Diagram**
+## 1. **Backend Service Diagram**
 
 ```mermaid
 graph TD
@@ -41,7 +20,54 @@ graph TD
 
 ---
 
-## 3. **Keycloak Service Diagram**
+## 2. **Database Service Diagram**
+
+```mermaid
+graph TD
+  Backend -->|Read/Write| Database[(PostgreSQL)]
+  Spark -->|Read/Write| Database
+  Keycloak -->|User Data| Database
+  Database -->|Backup| BackupSystem
+  Database -->|Metrics & Logs| OpenTelemetry
+  BackupSystem -->|Restore| Database
+  Database -->|Replication| PGReplica[(PostgreSQL Replica)]
+  BackupSystem -->|Store| BackupStorage
+  PGReplica -->|Failover| FailoverMechanism
+  FailoverMechanism -->|Promote| PGReplica
+```
+
+**Explanation:**  
+
+- The **Database** service (PostgreSQL) is the central data store for all services.
+- Backend, Spark, and Keycloak interact with the database for data storage and retrieval.
+- Automatic backup and restore procedures are managed by the BackupSystem, which stores backups in BackupStorage.
+- The database is replicated for high availability using PGReplica, with failover managed by a FailoverMechanism.
+- All database operations, backup, and HA events are monitored via the observability stack (metrics/logs sent to OpenTelemetry Collector, Prometheus, Loki).
+
+---
+
+## 3. **Frontend Service Diagram**
+
+```mermaid
+graph TD
+  User((User)) -->|Upload CSV| Frontend[Frontend]
+  Frontend -->|API Requests| Backend
+  Frontend -->|Auth Request| Keycloak
+  Frontend -->|Metrics & Logs| OpenTelemetry
+  Frontend -.->|Dashboard| Grafana
+```
+
+**Explanation:**  
+
+- The Frontend is the user-facing web UI.
+- Users upload data and interact with the ETL pipeline.
+- Authenticates via Keycloak (SSO).
+- Sends API requests to the Backend.
+- Exposes metrics and logs to the observability stack (OpenTelemetry Collector, Prometheus, Loki, Grafana).
+
+---
+
+## 4. **Keycloak Service Diagram**
 
 ```mermaid
 graph TD
@@ -74,82 +100,7 @@ graph TD
 
 ---
 
-## 4. **Spark Service Diagram**
-
-```mermaid
-graph TD
-  Backend -->|Submit Job| Spark[Spark]
-  Spark -->|Transform Data| PostgreSQL
-  Spark -->|Metrics & Logs| OpenTelemetry
-  Spark -->|Auth| Keycloak
-```
-
-**Explanation:**  
-
-- Spark executes distributed data transformations.
-- Receives jobs from the Backend.
-- Reads/writes data to PostgreSQL.
-- Authenticates via Keycloak.
-- Sends metrics and logs to the observability stack for performance and health monitoring.
-
----
-
-## 5. **Database Service Diagram**
-
-```mermaid
-graph TD
-  Backend -->|Read/Write| Database[(PostgreSQL)]
-  Spark -->|Read/Write| Database
-  Keycloak -->|User Data| Database
-  Database -->|Backup| BackupSystem
-  Database -->|Metrics & Logs| OpenTelemetry
-  BackupSystem -->|Restore| Database
-  Database -->|Replication| PGReplica[(PostgreSQL Replica)]
-  BackupSystem -->|Store| BackupStorage
-  PGReplica -->|Failover| FailoverMechanism
-  FailoverMechanism -->|Promote| PGReplica
-```
-
-**Explanation:**  
-
-- The **Database** service (PostgreSQL) is the central data store for all services.
-- Backend, Spark, and Keycloak interact with the database for data storage and retrieval.
-- Automatic backup and restore procedures are managed by the BackupSystem, which stores backups in BackupStorage.
-- The database is replicated for high availability using PGReplica, with failover managed by a FailoverMechanism.
-- All database operations, backup, and HA events are monitored via the observability stack (metrics/logs sent to OpenTelemetry Collector, Prometheus, Loki).
-
----
-
-## 6. **Nginx Service Diagram**
-
-```mermaid
-graph TD
-  user((User))
-  nginx[Nginx]
-  frontend[Frontend]
-  keycloak[Keycloak]
-  backend[Backend]
-  database[Database HA Proxy]
-  monitoring[Observability Stack]
-  registry[Container Registry]
-
-  user -->|HTTPS Request| nginx
-  nginx -->|Proxy| frontend
-  nginx -->|Proxy| backend
-  nginx -->|Proxy| keycloak
-  nginx -->|Proxy| database
-  nginx -->|Proxy| monitoring
-  nginx -->|Proxy| registry
-```
-
-**Explanation:**  
-
-- Nginx acts as a reverse proxy, routing external traffic to internal services.
-- Terminates SSL and enforces security policies.
-
----
-
-## 7. **Observability Stack Diagram**
+## 5. **Monitoring Service Diagram**
 
 ```mermaid
 graph TD
@@ -219,7 +170,63 @@ alertmanager -->|Sends Alerts| user[User]
 
 ---
 
-## 8. **CI/CD Pipeline Diagram**
+## 6. **Nginx Service Diagram**
+
+```mermaid
+graph TD
+  user((User))
+  nginx[Nginx]
+  frontend[Frontend]
+  keycloak[Keycloak]
+  backend[Backend]
+  database[Database HA Proxy]
+  monitoring[Observability Stack]
+  registry[Container Registry]
+
+  user -->|HTTPS Request| nginx
+  nginx -->|Proxy| frontend
+  nginx -->|Proxy| backend
+  nginx -->|Proxy| keycloak
+  nginx -->|Proxy| database
+  nginx -->|Proxy| monitoring
+  nginx -->|Proxy| registry
+```
+
+**Explanation:**  
+
+- Nginx acts as a reverse proxy, routing external traffic to internal services.
+- Terminates SSL and enforces security policies.
+
+---
+
+## 7. **Registery Service Diagram**
+
+```mermaid
+```
+
+---
+
+## 8. **Spark Service Diagram**
+
+```mermaid
+graph TD
+  Backend -->|Submit Job| Spark[Spark]
+  Spark -->|Transform Data| PostgreSQL
+  Spark -->|Metrics & Logs| OpenTelemetry
+  Spark -->|Auth| Keycloak
+```
+
+**Explanation:**  
+
+- Spark executes distributed data transformations.
+- Receives jobs from the Backend.
+- Reads/writes data to PostgreSQL.
+- Authenticates via Keycloak.
+- Sends metrics and logs to the observability stack for performance and health monitoring.
+
+---
+
+## 9. **CI/CD Pipeline Diagram**
 
 ```mermaid
 graph TD

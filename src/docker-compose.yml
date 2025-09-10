@@ -137,8 +137,9 @@ services:
         target: /certs/server.cert
       - source: ssl_key
         target: /certs/server.key
-      - "5050:80"
-      - "5051:443"
+    # ports:
+    # - "5050:80"
+    # - "5051:443"
     networks:
       - etl_network
     volumes:
