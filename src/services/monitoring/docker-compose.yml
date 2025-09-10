@@ -46,16 +46,11 @@ services:
         target: /etc/grafana/provisioning/dashboards/dashboards.yml
       - source: grafana_datasources_config
         target: /etc/grafana/provisioning/datasources/datasources.yml
+
       - source: grafana_dashboard_cadvisor
         target: /var/lib/grafana/dashboards/cadvisor.json
-      - source: grafana_dashboard_containers
-        target: /var/lib/grafana/dashboards/containers.json
-      - source: grafana_dashboard_node
-        target: /var/lib/grafana/dashboards/node.json
-      - source: grafana_dashboard_postgres
-        target: /var/lib/grafana/dashboards/postgres.json
-      - source: grafana_dashboard_swarm
-        target: /var/lib/grafana/dashboards/swarm.json
+      - source: grafana_dashboard_docker-swarm
+        target: /var/lib/grafana/dashboards/docker-swarm.json
     ports:
       - "3000:3000"
     networks:
@@ -315,23 +310,22 @@ configs:
     file: ./grafana/provisioning/dashboards/dashboards.yml
   grafana_datasources_config:
     file: ./grafana/provisioning/datasources/datasources.yml
+
   grafana_dashboard_cadvisor:
     file: ./grafana/dashboards/cadvisor.json
-  grafana_dashboard_containers:
-    file: ./grafana/dashboards/containers.json
-  grafana_dashboard_node:
-    file: ./grafana/dashboards/node.json
-  grafana_dashboard_postgres:
-    file: ./grafana/dashboards/postgres.json
-  grafana_dashboard_swarm:
+  grafana_dashboard_docker-swarm:
     file: ./grafana/dashboards/docker-swarm.json
+
   loki_config:
     file: ./loki/local-config.yaml
+
   otel_collector_config:
     file: ./otel-collector/config.yaml
+
   prometheus_config:
     file: ./prometheus/prometheus.yml
   # prometheus_rule:
   # file: ./prometheus/rules/alerts.yml
+
   promtail_config:
     file: ./promtail/promtail.yaml

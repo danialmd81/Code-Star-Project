@@ -137,8 +137,9 @@ services:
         target: /certs/server.cert
       - source: ssl_key
         target: /certs/server.key
-      - "5050:80"
-      - "5051:443"
+    # ports:
+    # - "5050:80"
+    # - "5051:443"
     networks:
       - etl_network
     volumes:
@@ -317,12 +318,6 @@ services:
         target: /var/lib/grafana/dashboards/cadvisor.json
       - source: grafana_dashboard_docker-swarm
         target: /var/lib/grafana/dashboards/docker-swarm.json
-      # - source: grafana_dashboard_containers
-      # target: /var/lib/grafana/dashboards/containers.json
-      # - source: grafana_dashboard_node
-      # target: /var/lib/grafana/dashboards/node.json
-      # - source: grafana_dashboard_postgres
-      # target: /var/lib/grafana/dashboards/postgres.json
     # ports:
     # - "3000:3000"
     networks:
@@ -890,6 +885,9 @@ networks:
 # Volumes
 # -----------------------------------------------
 volumes:
+  # -----------------------------------------------
+  # database
+  # -----------------------------------------------
   database_data:
     driver: local
     name: database_data
@@ -919,6 +917,9 @@ volumes:
       o: addr=worker1,rw
       device: ":/srv/docker/volumes/backup"
 
+  # -----------------------------------------------
+  # Keycloak
+  # -----------------------------------------------
   keycloak_themes:
     driver: local
     name: keycloak_themes
@@ -927,6 +928,9 @@ volumes:
       o: addr=master-2,rw
       device: ":/srv/docker/volumes/keycloak_themes"
 
+  # -----------------------------------------------
+  # Monitoring
+  # -----------------------------------------------
   prometheus_data:
     driver: local
     driver_opts:
@@ -955,6 +959,9 @@ volumes:
       o: addr=worker1,rw
       device: ":/srv/docker/volumes/alertmanager_data"
 
+  # -----------------------------------------------
+  # Nginx
+  # -----------------------------------------------
   # master-2
   # certbot
   certbot_data:
@@ -966,6 +973,9 @@ volumes:
       device: ":/srv/docker/volumes/certbot_data"
   # /home/danial/dockerize.ir
 
+  # -----------------------------------------------
+  # Registery
+  # -----------------------------------------------
   registry_data:
     driver: local
     name: registry_data
@@ -974,6 +984,9 @@ volumes:
       o: addr=master-1,rw
       device: ":/srv/docker/volumes/registry_data"
 
+  # -----------------------------------------------
+  # Spark
+  # -----------------------------------------------
   spark_data:
     driver: local
     name: spark_data
@@ -995,10 +1008,14 @@ volumes:
       type: nfs
       o: addr=master-2,rw
       device: ":/srv/docker/volumes/spark_history_data"
+
 # -----------------------------------------------
 # Configs
 # -----------------------------------------------
 configs:
+  # -----------------------------------------------
+  # database
+  # -----------------------------------------------
   init_script:
     file: ./services/database/init/01-init.sql
   replica_init_script:
@@ -1007,7 +1024,9 @@ configs:
     file: ./services/database/haproxy/haproxy.cfg
   haproxy_entrypoint:
     file: ./services/database/haproxy/haproxy-entrypoint.sh
-
+  # -----------------------------------------------
+  # Keycloak
+  # -----------------------------------------------
   team1_realm:
     file: ./services/keycloak/realm-config/team1-realm.json
   team2_realm:
@@ -1017,33 +1036,38 @@ configs:
   wait_for_db:
     file: ./services/keycloak/wait-for-db.sh
 
+  # -----------------------------------------------
+  # Monitoring
+  # -----------------------------------------------
   alertmanager_config:
     file: ./services/monitoring/alertmanager/alertmanager.yml
   grafana_dashboards_config:
     file: ./services/monitoring/grafana/provisioning/dashboards/dashboards.yml
   grafana_datasources_config:
     file: ./services/monitoring/grafana/provisioning/datasources/datasources.yml
+
   grafana_dashboard_cadvisor:
     file: ./services/monitoring/grafana/dashboards/cadvisor.json
-  # grafana_dashboard_containers:
-  # file: ./services/monitoring/grafana/dashboards/containers.json
-  # grafana_dashboard_node:
-  # file: ./services/monitoring/grafana/dashboards/node.json
-  # grafana_dashboard_postgres:
-  # file: ./services/monitoring/grafana/dashboards/postgres.json
   grafana_dashboard_docker-swarm:
     file: ./services/monitoring/grafana/dashboards/docker-swarm.json
+
   loki_config:
     file: ./services/monitoring/loki/local-config.yaml
+
   otel_collector_config:
     file: ./services/monitoring/otel-collector/config.yaml
+
   prometheus_config:
     file: ./services/monitoring/prometheus/prometheus.yml
   # prometheus_rule:
   # file: ./services/monitoring/prometheus/rules/alerts.yml
+
   promtail_config:
     file: ./services/monitoring/promtail/promtail.yaml
 
+  # -----------------------------------------------
+  # Nginx
+  # -----------------------------------------------
   nginx_conf:
     file: ./services/nginx/nginx.conf
   database_conf:
@@ -1061,6 +1085,9 @@ configs:
   certbot_renew:
     file: ./services/nginx/cert-renew.sh
 
+  # -----------------------------------------------
+  # Spark
+  # -----------------------------------------------
   spark_defaults:
     file: ./services/spark/conf/spark-defaults.conf
   spark_metrics:
