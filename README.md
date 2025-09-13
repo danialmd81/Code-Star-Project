@@ -91,3 +91,15 @@ This project implements a robust, production-grade ETL pipeline on a Docker Swar
 - [diagrams/diagram.md](diagrams/diagram.md): Architecture diagrams
 - [tasks/Project.md](tasks/Project.md), [tasks/Tasks.md](tasks/Tasks.md): Team roles and responsibilities
 - [src/ansible/README.md](src/ansible/README.md): OS hardening
+
+## images
+
+![alt](images/screenshots/pgadmin.png)
+![alt](images/screenshots/pgadmin1.png)
+![alt](images/screenshots/keycloak.png)
+![alt](images/screenshots/keycloak1.png)
+![alt](images/screenshots/grafana.png)
+![alt](images/screenshots/grafana1.png)
+![alt](images/screenshots/grafana2.png)
+![alt](images/screenshots/grafana3.png)
+![alt](images/screenshots/grafana4.png)
