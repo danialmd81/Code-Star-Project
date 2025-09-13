@@ -91,3 +91,39 @@ This project implements a robust, production-grade ETL pipeline on a Docker Swar
 - [diagrams/diagram.md](diagrams/diagram.md): Architecture diagrams
 - [tasks/Project.md](tasks/Project.md), [tasks/Tasks.md](tasks/Tasks.md): Team roles and responsibilities
 - [src/ansible/README.md](src/ansible/README.md): OS hardening
+
+## 📸 Service Screenshots
+
+### 🗄️ Database
+
+| Screenshot | Description |
+|------------|-------------|
+| ![PgAdmin Main](images/screenshots/pgadmin.png)   | PgAdmin Dashboard |
+| ![PgAdmin Details](images/screenshots/pgadmin1.png) | Database Details & Management |
+
+[View Database](https://database.dani-docker.ir)
+
+---
+
+### 🛡️ Keycloak
+
+| Screenshot | Description |
+|------------|-------------|
+| ![Keycloak Login](images/screenshots/keycloak.png)   | Keycloak Login Page |
+| ![Keycloak Admin](images/screenshots/keycloak1.png)  | Keycloak Admin Console |
+
+[View Keycloak](https://auth.dani-docker.ir)
+
+---
+
+### 📊 Grafana
+
+| Screenshot | Description |
+|------------|-------------|
+| ![Grafana Dashboard](images/screenshots/grafana.png)   | Main Grafana Dashboard |
+| ![Grafana Metrics](images/screenshots/grafana1.png)    | Metrics Visualization |
+| ![Grafana Alerts](images/screenshots/grafana2.png)     | Alerting Overview |
+| ![Grafana Explore](images/screenshots/grafana3.png)    | Explore Data |
+| ![Grafana Settings](images/screenshots/grafana4.png)   | Settings & Configuration |
+
+[View Grafana](https://grafana.dani-docker.ir)
