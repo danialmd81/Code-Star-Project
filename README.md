@@ -127,3 +127,13 @@ This project implements a robust, production-grade ETL pipeline on a Docker Swar
 | ![Grafana Settings](images/screenshots/grafana4.png)   | Settings & Configuration |
 
 [View Grafana](https://grafana.dani-docker.ir)
+
+---
+
+### 🧪 Spark
+
+| Screenshot | Description |
+|------------|-------------|
+| ![Spark Jobs](images/screenshots/spark.png)   | Spark Master |
+| ![Spark Metrics](images/screenshots/spark1.png) | Spark Worker |
+| ![Spark Metrics](images/screenshots/spark2.png) | Spark History |
