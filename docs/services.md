@@ -49,19 +49,19 @@
     - Display Name: `Team 1 Realm`  
     - Admin Username: `team1-admin`  
     - Admin Password: `change-me-team1`
-    - Admin Console: `https://auth.dani-docker.ir/realms/team1/account`
+    - Admin Console: `https://auth.dani-docker.ir/admin/team1/console/`
   - **Team 2 Realm:**  
     - Realm Name: `team2`  
     - Display Name: `Team 2 Realm`  
     - Admin Username: `team2-admin`  
     - Admin Password: `change-me-team2`
-    - Admin Console: `https://auth.dani-docker.ir/realms/team2/account`
+    - Admin Console: `https://auth.dani-docker.ir/admin/team2/console/`
   - **Team 3 Realm:**  
     - Realm Name: `team3`  
     - Display Name: `Team 3 Realm`  
     - Admin Username: `team3-admin`  
     - Admin Password: `change-me-team3`
-    - Admin Console: `https://auth.dani-docker.ir/realms/team3/account`
+    - Admin Console: `https://auth.dani-docker.ir/admin/team3/console/`
 
   - **Notes:**  
     - All authentication is managed via Keycloak.
