@@ -848,7 +848,6 @@ services:
           - node.role == worker
 
   registry-ui:
-    container_name: registery_ui
     image: joxit/docker-registry-ui:latest
     environment:
       - REGISTRY_TITLE="Dani Registry"
