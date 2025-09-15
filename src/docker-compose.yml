@@ -874,7 +874,7 @@ services:
       - VERBOSE=true
       - FILTER_SERVICES=label=shepherd.autodeploy=true
       - WITH_REGISTRY_AUTH=true
-      - REGISTRY_HOST=registry:5000
+      - REGISTRY_HOST=registry.dani-docker.ir
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
