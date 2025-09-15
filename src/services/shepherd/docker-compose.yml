@@ -1,0 +1,23 @@
+services:
+  shepherd:
+    image: containrrr/shepherd:latest
+    env_file:
+      - .env
+    environment:
+      - SLEEP_TIME=1m
+      - TZ=IR
+      - VERBOSE=true
+      - FILTER_SERVICES=label=shepherd.autodeploy=true
+      - SHEPHERD_LABEL_ENABLE=true
+      - SHEPHERD_REGISTRY_AUTH=true
+      - SHEPHERD_NOTIFICATION_REPORT=false
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - etl_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager

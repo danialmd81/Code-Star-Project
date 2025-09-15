@@ -9,7 +9,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "shepherd.autodeploy=true"
     deploy:
       mode: replicated
       replicas: 1
@@ -24,7 +24,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "shepherd.autodeploy=true"
     deploy:
       mode: replicated
       replicas: 1
@@ -39,7 +39,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "shepherd.autodeploy=true"
     deploy:
       mode: replicated
       replicas: 1
@@ -261,7 +261,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "shepherd.autodeploy=true"
     deploy:
       mode: replicated
       replicas: 1
@@ -276,7 +276,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "shepherd.autodeploy=true"
     deploy:
       mode: replicated
       replicas: 1
@@ -291,7 +291,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "com.centurylinklabs.watchtower.enable=true"
+      - "shepherd.autodeploy=true"
     deploy:
       mode: replicated
       replicas: 1
@@ -862,6 +862,31 @@ services:
           - node.role == worker
 
   # -----------------------------------------------
+  # shepherd
+  # -----------------------------------------------
+  shepherd:
+    image: containrrr/shepherd:latest
+    env_file:
+      - .env
+    environment:
+      - SLEEP_TIME=1m
+      - TZ=IR
+      - VERBOSE=true
+      - FILTER_SERVICES=label=shepherd.autodeploy=true
+      - WITH_REGISTRY_AUTH=true
+      - REGISTRY_HOST=registry:5000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - etl_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  # -----------------------------------------------
   # Spark
   # -----------------------------------------------
   spark-master:
@@ -1008,29 +1033,6 @@ services:
       #   reservations:
       #     cpus: "0.1"
       #     memory: 128M
-
-  # -----------------------------------------------
-  # watchtower
-  # -----------------------------------------------
-  watchtower:
-    image: containrrr/watchtower:1.7.1
-    command: --interval 60 --cleanup
-    env_file:
-      - .env
-    environment:
-      - WATCHTOWER_LABEL_ENABLE=true
-      - WATCHTOWER_NOTIFICATION_REPORT=false
-      - WATCHTOWER_REGISTRY_AUTH=true
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - etl_network
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
 
 # -----------------------------------------------
 # Networks
