@@ -747,8 +747,9 @@ services:
         target: /opt/spark/conf/key.pem
     ports:
       - "7077:7077" # Master Port
+      - "6066:6066"
       - "8080:8080" # Master Web UI
-      - "8443:8443" # Master SSL
+      # - "8443:8443" # Master SSL
     networks:
       - etl_network
     volumes:
@@ -797,7 +798,7 @@ services:
         target: /opt/spark/conf/key.pem
     ports:
       - "7080:8080" # Worker Web UI
-      - "7443:8443" # Worker SSL
+      # - "7443:8443" # Worker SSL
     networks:
       - etl_network
     volumes:
@@ -846,7 +847,7 @@ services:
         target: /opt/spark/conf/key.pem
     ports:
       - "6080:8080" # History Server UI
-      - "6443:8443" # History Server SSL
+      # - "6443:8443" # History Server SSL
     networks:
       - etl_network
     volumes:

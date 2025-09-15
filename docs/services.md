@@ -158,9 +158,9 @@
 ## 5. Apache Spark
 
 - **Nginx Addresses:**  
-  - Spark Master: `https://spark-master.dani-docker.ir`
-  - Spark Worker: `https://spark-worker.dani-docker.ir`
-  - Spark History: `https://spark-history.dani-docker.ir`
+  - Spark Master: `http://spark-master.dani-docker.ir`
+  - Spark Worker: `http://spark-worker.dani-docker.ir`
+  - Spark History: `http://spark-history.dani-docker.ir`
 
   ### Working with Apache Spark
 
@@ -181,7 +181,7 @@
 
   - Spark is used for distributed data processing and analytics.
   - Jobs are submitted by the backend service and results are stored in the central PostgreSQL database.
-  - Spark authenticates via Keycloak and is monitored by the observability stack.
+  - Spark is monitored by the observability stack.
   - Use the Nginx addresses for accessing Spark UIs and submitting jobs.
 
 ---
