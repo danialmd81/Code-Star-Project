@@ -16,6 +16,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+        restart_policy: none
 
   team2-backend:
     image: registry:5000/team2/backend:latest
@@ -29,6 +30,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+        restart_policy: none
 
   team3-backend:
     image: registry:5000/team3/backend:latest
@@ -42,7 +44,7 @@ services:
       placement:
         constraints:
           - node.role == worker
-
+        restart_policy: none
 
   # -----------------------------------------------
   # TODO add teams' user to pgadmin from ui
@@ -263,6 +265,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+        restart_policy: none
 
   team2-frontend:
     image: registry:5000/team2/frontend:latest
@@ -276,6 +279,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+        restart_policy: none
 
   team3-frontend:
     image: registry:5000/team3/frontend:latest
@@ -289,6 +293,7 @@ services:
       placement:
         constraints:
           - node.role == worker
+        restart_policy: none
 
   # -----------------------------------------------
   # Keycloak
@@ -795,7 +800,6 @@ services:
         constraints:
           - node.hostname == master-2
 
-
   # -----------------------------------------------
   # Registry
   # -----------------------------------------------
@@ -999,7 +1003,6 @@ services:
       #   reservations:
       #     cpus: "0.1"
       #     memory: 128M
-
 
   # -----------------------------------------------
   # watchtower
