@@ -4,15 +4,32 @@ services:
   # -----------------------------------------------
   # Backend
   # -----------------------------------------------
-  # team1-backend:
-  #   image: registry:5000/backend:latest
-  #   labels:
-  #     - "com.centurylinklabs.watchtower.enable=true"
+  team1-backend:
+    image: registry:5000/team1/backend:latest
+    networks:
+      - etl_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
 
-  # team2-backend:
-  #   image: registry:5000/backend:latest
-  #   labels:
-  #     - "com.centurylinklabs.watchtower.enable=true"
+  team2-backend:
+    image: registry:5000/team2/backend:latest
+    networks:
+      - etl_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+
   team3-backend:
     image: registry:5000/team3/backend:latest
     networks:
@@ -25,7 +42,7 @@ services:
       placement:
         constraints:
           - node.role == worker
-    
+
   # -----------------------------------------------
   # TODO add teams' user to pgadmin from ui
   # Database
@@ -153,6 +170,12 @@ services:
     image: dpage/pgadmin4:9.5
     env_file:
       - .env
+    environment:
+      - PGADMIN_ENABLE_TLS=True
+      - PGADMIN_CONFIG_SERVER_MODE=True
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+      - PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION=False
+      - PGADMIN_CONFIG_UPGRADE_CHECK_ENABLED=False
     secrets:
       - source: ssl_cert
         target: /certs/server.cert
@@ -191,6 +214,14 @@ services:
     user: root
     env_file:
       - .env
+    environment:
+      - POSTGRES_HOST=database
+      - POSTGRES_DB=postgres
+      - BACKUP_SCHEDULE=0 3 * * *
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - BACKUP_DIR=/backups
     volumes:
       - backup_data:/backups
     networks:
@@ -219,22 +250,34 @@ services:
   # -----------------------------------------------
   # Frontend
   # -----------------------------------------------
-  # team1-frontend:
-  #   image: registry:5000/frontend:latest
-  #   labels:
-  #     - "com.centurylinklabs.watchtower.enable=true"
+  team1-frontend:
+    image: registry:5000/team1/frontend:latest
+    networks:
+      - etl_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
 
-  # team2-frontend:
-  #   image: registry:5000/frontend:latest
-  #   labels:
-  #     - "com.centurylinklabs.watchtower.enable=true"
+  team2-frontend:
+    image: registry:5000/team2/frontend:latest
+    networks:
+      - etl_network
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+
   team3-frontend:
     image: registry:5000/team3/frontend:latest
-    secrets:
-      - source: ssl_cert
-        target: /etc/nginx/ssl/live/fullchain.pem
-      - source: ssl_key
-        target: /etc/nginx/ssl/live/privkey.pem
     networks:
       - etl_network
     labels:
@@ -262,14 +305,18 @@ services:
     env_file:
       - .env
     environment:
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+      - KC_HTTPS_CERTIFICATE_FILE=/etc/ssl/certs/fullchain.pem
+      - KC_HTTPS_CERTIFICATE_KEY_FILE=/etc/ssl/private/privkey.pem
+      - KC_LOG_LEVEL=INFO
+      - KC_LOG=file
+      - KC_DB_URL_HOST=database
+      - KC_DB_URL_PORT=5432
+      - KC_DB=postgres
+      - KC_DB_URL_DATABASE=keycloak_db
       # JVM settings
-      JAVA_OPTS_APPEND: >-
-        -Xms1g -Xmx2g
-        -XX:MetaspaceSize=96m
-        -XX:MaxMetaspaceSize=256m
-        -XX:+ParallelRefProcEnabled
-        -XX:+UseStringDeduplication
-        -Djava.net.preferIPv4Stack=true
+      - JAVA_OPTS_APPEND=-Xms1g -Xmx2g -XX:MetaspaceSize=96m -XX:MaxMetaspaceSize=256m -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -Djava.net.preferIPv4Stack=true
     configs:
       - source: team1_realm
         target: /opt/keycloak/data/import/team1_realm.json
@@ -355,6 +402,12 @@ services:
   grafana:
     image: grafana/grafana:11.5
     user: "root:root"
+    env_file:
+      - .env
+    environment:
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=grafana.dani-docker.ir
+      # - GF_INSTALL_PLUGINS=grafana-piechart-panel,grafana-worldmap-panel
     configs:
       - source: grafana_dashboards_config
         target: /etc/grafana/provisioning/dashboards/dashboards.yml
@@ -611,6 +664,8 @@ services:
         target: /etc/nginx/nginx.conf
       - source: database_conf
         target: /etc/nginx/conf.d/database.conf
+      - source: frontend_conf
+        target: /etc/nginx/conf.d/frontend.conf
       - source: monitoring_conf
         target: /etc/nginx/conf.d/monitoring.conf
       - source: keycloak.conf
@@ -738,6 +793,7 @@ services:
       placement:
         constraints:
           - node.hostname == master-2
+
   # -----------------------------------------------
   # Registry
   # -----------------------------------------------
@@ -745,6 +801,13 @@ services:
     image: registry:2
     env_file:
       - .env
+    environment:
+      - REGISTRY_HTTP_TLS_CERTIFICATE=/etc/ssl/certs/fullchain.pem
+      - REGISTRY_HTTP_TLS_KEY=/etc/ssl/private/privkey.pem
+      - REGISTRY_AUTH=htpasswd
+      - REGISTRY_AUTH_HTPASSWD_PATH=/etc/registry/auth/admin
+      - REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm"
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
     secrets:
       - source: ssl_cert
         target: /etc/ssl/certs/fullchain.pem
@@ -765,6 +828,21 @@ services:
         max-file: "3"
         tag: "{{.Name}}/{{.ID}}"
         labels: "service=registry"
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == worker
+
+  registry-ui:
+    container_name: registery_ui
+    image: joxit/docker-registry-ui:latest
+    environment:
+      - REGISTRY_TITLE="Dani Registry"
+      - REGISTRY_URL=https://registry.dani-docker.ir
+    networks:
+      - etl_network
     deploy:
       mode: replicated
       replicas: 1
@@ -919,6 +997,7 @@ services:
       #   reservations:
       #     cpus: "0.1"
       #     memory: 128M
+
   # -----------------------------------------------
   # watchtower
   # -----------------------------------------------
@@ -927,6 +1006,11 @@ services:
     command: --interval 60 --cleanup
     env_file:
       - .env
+    environment:
+      - WATCHTOWER_SCOPE=etl
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_NOTIFICATION_REPORT=false
+      - WATCHTOWER_REGISTRY_AUTH=true
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -1138,6 +1222,8 @@ configs:
     file: ./services/nginx/nginx.conf
   database_conf:
     file: ./services/nginx/conf.d/database.conf
+  frontend_conf:
+    file: ./services/nginx/conf.d/frontend.conf
   monitoring_conf:
     file: ./services/nginx/conf.d/monitoring.conf
   keycloak.conf:
