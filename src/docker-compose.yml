@@ -9,7 +9,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "shepherd.autodeploy=true"
+      - shepherd.autodeploy=true
     deploy:
       mode: replicated
       replicas: 1
@@ -24,7 +24,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "shepherd.autodeploy=true"
+      - shepherd.autodeploy=true
     deploy:
       mode: replicated
       replicas: 1
@@ -39,7 +39,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "shepherd.autodeploy=true"
+      - shepherd.autodeploy=true
     deploy:
       mode: replicated
       replicas: 1
@@ -261,7 +261,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "shepherd.autodeploy=true"
+      - shepherd.autodeploy=true
     deploy:
       mode: replicated
       replicas: 1
@@ -276,7 +276,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "shepherd.autodeploy=true"
+      - shepherd.autodeploy=true
     deploy:
       mode: replicated
       replicas: 1
@@ -291,7 +291,7 @@ services:
     networks:
       - etl_network
     labels:
-      - "shepherd.autodeploy=true"
+      - shepherd.autodeploy=true
     deploy:
       mode: replicated
       replicas: 1
