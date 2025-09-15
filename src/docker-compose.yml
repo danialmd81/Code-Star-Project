@@ -4,7 +4,19 @@ services:
   # -----------------------------------------------
   # Backend
   # -----------------------------------------------
+  # team1-backend:
+  #   image: registry:5000/backend:latest
+  #   labels:
+  #     - "com.centurylinklabs.watchtower.enable=true"
 
+  # team2-backend:
+  #   image: registry:5000/backend:latest
+  #   labels:
+  #     - "com.centurylinklabs.watchtower.enable=true"
+  team3-backend:
+    image: registry:5000/team3/backend:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
   # -----------------------------------------------
   # TODO add teams' user to pgadmin from ui
   # Database
@@ -198,6 +210,19 @@ services:
   # -----------------------------------------------
   # Frontend
   # -----------------------------------------------
+  # team1-frontend:
+  #   image: registry:5000/frontend:latest
+  #   labels:
+  #     - "com.centurylinklabs.watchtower.enable=true"
+
+  # team2-frontend:
+  #   image: registry:5000/frontend:latest
+  #   labels:
+  #     - "com.centurylinklabs.watchtower.enable=true"
+  team3-frontend:
+    image: registry:5000/team3/frontend:latest
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
 
   # -----------------------------------------------
   # Keycloak
@@ -872,6 +897,24 @@ services:
       #   reservations:
       #     cpus: "0.1"
       #     memory: 128M
+  # -----------------------------------------------
+  # watchtower
+  # -----------------------------------------------
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    command: --interval 60 --cleanup
+    env_file:
+      - .env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - etl_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
 
 # -----------------------------------------------
 # Networks
