@@ -5,7 +5,7 @@ services:
   # Backend
   # -----------------------------------------------
   team1-backend:
-    image: registry:5000/team1/backend:latest
+    image: registry.dani-docker.ir/team1/backend:latest
     networks:
       - etl_network
     labels:
@@ -20,7 +20,7 @@ services:
         condition: none
 
   team2-backend:
-    image: registry:5000/team2/backend:latest
+    image: registry.dani-docker.ir/team2/backend:latest
     networks:
       - etl_network
     labels:
@@ -35,7 +35,7 @@ services:
         condition: none
 
   team3-backend:
-    image: registry:5000/team3/backend:latest
+    image: registry.dani-docker.ir/team3/backend:latest
     networks:
       - etl_network
     labels:
@@ -257,7 +257,7 @@ services:
   # Frontend
   # -----------------------------------------------
   team1-frontend:
-    image: registry:5000/team1/frontend:latest
+    image: registry.dani-docker.ir/team1/frontend:latest
     networks:
       - etl_network
     labels:
@@ -272,7 +272,7 @@ services:
         condition: none
 
   team2-frontend:
-    image: registry:5000/team2/frontend:latest
+    image: registry.dani-docker.ir/team2/frontend:latest
     networks:
       - etl_network
     labels:
@@ -287,7 +287,7 @@ services:
         condition: none
 
   team3-frontend:
-    image: registry:5000/team3/frontend:latest
+    image: registry.dani-docker.ir/team3/frontend:latest
     networks:
       - etl_network
     labels:
