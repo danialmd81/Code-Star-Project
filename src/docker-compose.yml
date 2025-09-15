@@ -1019,7 +1019,6 @@ services:
     env_file:
       - .env
     environment:
-      - WATCHTOWER_SCOPE=etl
       - WATCHTOWER_LABEL_ENABLE=true
       - WATCHTOWER_NOTIFICATION_REPORT=false
       - WATCHTOWER_REGISTRY_AUTH=true
