@@ -43,6 +43,7 @@ services:
         constraints:
           - node.role == worker
 
+
   # -----------------------------------------------
   # TODO add teams' user to pgadmin from ui
   # Database
@@ -794,6 +795,7 @@ services:
         constraints:
           - node.hostname == master-2
 
+
   # -----------------------------------------------
   # Registry
   # -----------------------------------------------
@@ -997,6 +999,7 @@ services:
       #   reservations:
       #     cpus: "0.1"
       #     memory: 128M
+
 
   # -----------------------------------------------
   # watchtower
