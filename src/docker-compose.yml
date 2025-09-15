@@ -857,7 +857,7 @@ services:
     env_file:
       - .env
     environment:
-      - SLEEP_TIME=1m
+      - SLEEP_TIME=15m
       - TZ=IR
       - VERBOSE=true
       - FILTER_SERVICES=label=shepherd.autodeploy=true
