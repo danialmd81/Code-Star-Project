@@ -11,6 +11,8 @@ services:
         target: /etc/nginx/nginx.conf
       - source: database_conf
         target: /etc/nginx/conf.d/database.conf
+      - source: frontend_conf
+        target: /etc/nginx/conf.d/frontend.conf
       - source: monitoring_conf
         target: /etc/nginx/conf.d/monitoring.conf
       - source: keycloak.conf
@@ -147,6 +149,8 @@ configs:
     file: ./nginx.conf
   database_conf:
     file: ./conf.d/database.conf
+  frontend_conf:
+    file: ./conf.d/frontend.conf
   monitoring_conf:
     file: ./conf.d/monitoring.conf
   keycloak.conf:
