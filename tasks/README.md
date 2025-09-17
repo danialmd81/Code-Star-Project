@@ -49,28 +49,28 @@ w = worker node
 
 ## Team Roles & Responsibilities
 
-### Parham
+### Database
 
 - Database backup & failover mechanisms
 - Self-recovery & node management for Docker Swarm
 - UI components for system management
 - PostgreSQL optimization
 
-### Danial
+### Keycloak & Spark
 
 - User management & Keycloak implementation
 - Metrics integration for authentication services
 - Apache Spark setup and configuration
 - Spark monitoring integration
 
-### Arman
+### Monitoring
 
 - Monitoring stack implementation (Grafana, Prometheus)
 - Database monitoring and alerting
 - OpenTelemetry integration
 - Observability best practices documentation
 
-### Radmehr
+### CI/CD
 
 - CI/CD pipeline selection and implementation
 - Pipeline visualization dashboards
