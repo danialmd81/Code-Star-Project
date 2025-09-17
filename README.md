@@ -92,6 +92,8 @@ This project implements a robust, production-grade ETL pipeline on a Docker Swar
 - [tasks/Project.md](tasks/Project.md), [tasks/Tasks.md](tasks/Tasks.md): Team roles and responsibilities
 - [src/ansible/README.md](src/ansible/README.md): OS hardening
 
+---
+
 ## 📸 Service Screenshots
 
 ### 🗄️ Database
