@@ -1,6 +1,8 @@
-src/services/nginx/dockerize.ir/
+.github/copilot-instructions.md
+
 src/services/nginx/dani-docker.ir/
 src/services/nginx/certbot/
 src/services/registry/auth/
+src/secrets/
+
 src/.env
-.github/copilot-instructions.md
